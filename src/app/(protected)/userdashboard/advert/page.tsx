@@ -1,6 +1,6 @@
 "use client";
 
-import { MultiStepForm } from "../../../components/Multi_Step_Form_Wizzard/MultiStepForm";
+import { MultiStepForm } from "../../../../components/Multi_Step_Form_Wizzard/MultiStepForm";
 
 const AdvertPage = () => {
   return (

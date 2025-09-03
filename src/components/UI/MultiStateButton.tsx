@@ -27,7 +27,10 @@ export const MultiStateButton: React.FC<MultiStateButtonProps> = ({
   return (
     <div className="relative w-fit flex items-center gap-4 bg-indigo-50 rounded-full py-2 px-4">
       <button
-        onClick={handleToggle}
+        onClick={() => {
+          if (!isControlled) setInternalState(false);
+          onChange?.(false);
+        }}
         aria-pressed={active}
         className={clsx(
           "w-20 h-10 rounded-full flex items-center justify-center z-10 cursor-pointer",

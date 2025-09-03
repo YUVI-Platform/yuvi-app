@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { CourseLocationCard } from "../components/UI/Cards/LocationCards";
+
+import { locations } from "@/testdata/locationData";
 
 export default function Home() {
   return (
@@ -14,13 +17,29 @@ export default function Home() {
             </p>
           </div>
           <Link
-            href="/advert"
+            href="/membership"
             className="text-lg text-white bg-indigo-400 font-bold py-2 px-4 rounded-2xl hover:bg-yuvi-rose transition-colors duration-300"
           >
             Start your journey!
           </Link>
         </div>
       </main>
+
+      <section className="grid grid-cols-4 gap-8 my-24">
+        {locations.map((loc) => (
+          <CourseLocationCard
+            key={loc.id}
+            name={loc.name}
+            address={loc.address}
+            size={loc.size}
+            availableFrom={loc.availableFrom}
+            availableTo={loc.availableTo}
+            features={loc.features}
+            rating={loc.rating}
+            imageUrl={loc.imageUrl}
+          />
+        ))}
+      </section>
 
       <div className="flex flex-col items-center justify-center w-full max-w-[1000px] p-24">
         <h2 className="text-4xl font-bold text-center text-indigo-400">

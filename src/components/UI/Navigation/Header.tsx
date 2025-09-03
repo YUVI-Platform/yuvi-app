@@ -37,7 +37,7 @@ export const Header = () => {
           </li>
           <li>
             <Link
-              href="/advert"
+              href="/membership"
               className="text-indigo-400 font-medium hover:text-yuvi-rose hover:underline underline-offset-6 transition"
             >
               Membership
@@ -45,7 +45,8 @@ export const Header = () => {
           </li>
           <li>
             <Link
-              href="/advert"
+              href="https://yuvistudio.com/"
+              target="_blank"
               className="text-indigo-400 font-medium hover:text-yuvi-rose hover:underline underline-offset-6 transition"
             >
               Shop
@@ -61,7 +62,10 @@ export const Header = () => {
           </li>
         </ul>
       </nav>
-      <div className="flex items-center bg-indigo-400 py-2 px-4 rounded-full cursor-pointer hover:bg-yuvi-rose transition-colors">
+      <Link
+        href="/login"
+        className="flex items-center bg-indigo-400 py-2 px-4 rounded-full cursor-pointer hover:bg-yuvi-rose transition-colors"
+      >
         <span className="text-white font-medium">Login</span>
         <div className="ml-2 rounded-full overflow-hidden">
           <Image
@@ -71,7 +75,7 @@ export const Header = () => {
             height={24}
           />
         </div>
-      </div>
+      </Link>
     </header>
   );
 };
