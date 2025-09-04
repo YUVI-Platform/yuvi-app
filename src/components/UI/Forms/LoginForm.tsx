@@ -106,14 +106,17 @@ export const LoginForm = () => {
         </div>
         Login mit Google
       </button>
-      <Link
-        href={
-          "mailto:info@yuvi.com?subject=Account Anfrage&body=Hi Yuvi ich [Dein Name] möchte gerne einen Account bei euch anlegen!"
-        }
-        className="underline"
-      >
-        Account Anfragen
-      </Link>
+      <div className="flex flex-col justify-center items-center gap-2 text-gray-400">
+        <span>Du bist noch nicht Registriert?</span>
+        <Link
+          href={
+            "mailto:info@yuvi.com?subject=Account Anfrage&body=Hi Yuvi ich [Dein Name] möchte gerne einen Account bei euch anlegen!"
+          }
+          className="underline text-indigo-400"
+        >
+          Jetzt registrieren
+        </Link>
+      </div>
     </div>
   );
 };

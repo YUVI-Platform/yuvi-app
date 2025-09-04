@@ -118,6 +118,7 @@ export const MobileHeader = () => {
             <Link
               href="/"
               className="text-5xl text-indigo-400 font-medium hover:text-yuvi-rose hover:underline underline-offset-6 transition"
+              onClick={() => setIsOpen(false)}
             >
               About us
             </Link>
@@ -126,6 +127,7 @@ export const MobileHeader = () => {
             <Link
               href="/marketplace"
               className="text-5xl text-indigo-400 font-medium hover:text-yuvi-rose hover:underline underline-offset-6 transition"
+              onClick={() => setIsOpen(false)}
             >
               Marktplatz
             </Link>
@@ -134,6 +136,7 @@ export const MobileHeader = () => {
             <Link
               href="/membership"
               className="text-5xl text-indigo-400 font-medium hover:text-yuvi-rose hover:underline underline-offset-6 transition"
+              onClick={() => setIsOpen(false)}
             >
               Membership
             </Link>
@@ -143,14 +146,16 @@ export const MobileHeader = () => {
               href="https://yuvistudio.com/"
               target="_blank"
               className="text-5xl text-indigo-400 font-medium hover:text-yuvi-rose hover:underline underline-offset-6 transition"
+              onClick={() => setIsOpen(false)}
             >
               Shop
             </Link>
           </li>
           <li>
             <Link
-              href="/advert"
+              href="/community"
               className="text-5xl text-indigo-400 font-medium hover:text-yuvi-rose hover:underline underline-offset-6 transition"
+              onClick={() => setIsOpen(false)}
             >
               Community
             </Link>
