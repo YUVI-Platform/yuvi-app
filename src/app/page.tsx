@@ -10,7 +10,7 @@ export default function Home() {
         <div className="flex flex-col justify-center items-center text-white bg-black/40 w-full h-full gap-8">
           <div className="flex flex-col items-center justify-center gap-4">
             <h1 className="text-6xl font-bold text-center sm:text-left gelasio">
-              Hello folks, we are Yuvi!
+              Hi Athletes, we are Yuvi!
             </h1>
             <p className="text-2xl text-center sm:text-left">
               WE TURN (EMPTY) SPACES INTO URBAN MOVEMENT
@@ -25,7 +25,7 @@ export default function Home() {
         </div>
       </main>
 
-      <section className="grid grid-cols-4 gap-8 my-24">
+      <section className="grid grid-cols-1 md:grid-cols-4 gap-8 my-24">
         {locations.map((loc) => (
           <CourseLocationCard
             key={loc.id}

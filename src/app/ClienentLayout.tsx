@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { Header } from "../components/UI/Navigation/Header";
+import Header from "../components/UI/Navigation/Header";
 import Footer from "../components/UI/Navigation/Footer";
 
 export default function ClientLayout({
@@ -19,7 +19,7 @@ export default function ClientLayout({
         <>{children}</>
       ) : (
         <>
-          <div className="fixed flex w-full justify-center items-center mt-10 z-100">
+          <div className="fixed flex w-full justify-center items-center md:my-10 z-100">
             <Header />
           </div>
           {children}
