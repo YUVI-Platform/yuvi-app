@@ -85,7 +85,7 @@ export default function MapWithSidebar() {
   return (
     <main className="flex h-screen overflow-hidden w-full">
       {/* Sidebar mit Cards */}
-      <div className="min-w-fit h-full overflow-y-scroll bg-white p-8 space-y-4">
+      <div className="flex  flex-col justify-center min-w-fit w-full  h-full overflow-y-scroll p-8 space-y-4 pt-20">
         {locations.map((loc) => (
           <CourseLocationCard
             key={loc.id}
@@ -101,7 +101,7 @@ export default function MapWithSidebar() {
         ))}
       </div>
       {/* Map */}
-      <div className="w-full h-full relative">
+      <div className="w-full h-full relative hidden md:block">
         <MultiStateButton
           labels={["Liste", "Karte"]}
           onChange={() => setShowMap(!showMap)}

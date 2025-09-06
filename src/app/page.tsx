@@ -3,6 +3,8 @@ import { CourseLocationCard } from "../components/UI/Cards/LocationCards";
 
 import { locations } from "@/testdata/locationData";
 
+import { FAQBlock } from "@/components/FAQ/FaqBlock";
+
 export default function Home() {
   return (
     <div className="flex flex-col justify-center items-center w-full">
@@ -25,7 +27,7 @@ export default function Home() {
         </div>
       </main>
 
-      <section className="grid grid-cols-1 md:grid-cols-4 gap-8 my-24">
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-8 my-24">
         {locations.map((loc) => (
           <CourseLocationCard
             key={loc.id}
@@ -41,7 +43,7 @@ export default function Home() {
         ))}
       </section>
 
-      <div className="flex flex-col items-center justify-center w-full max-w-[1000px] p-24">
+      <div className="flex flex-col items-center justify-center w-full max-w-[1000px] p-4 md:p-24 pb-32">
         <h2 className="text-4xl font-bold text-center text-indigo-400">
           Sportwissen – von der Community, für die Community.
         </h2>
@@ -55,6 +57,8 @@ export default function Home() {
           dynamischen Community zu verwirklichen.
         </p>
       </div>
+
+      <FAQBlock />
     </div>
   );
 }

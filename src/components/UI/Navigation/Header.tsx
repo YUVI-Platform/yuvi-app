@@ -12,7 +12,7 @@ export const DesktopHeader = () => {
     >
       <Image src="/yuvi-favicon.avif" alt="Yuvi Logo" width={40} height={40} />
 
-      <div className="flex items-center border-l border-gray-300 h-full pl-8">
+      {/* <div className="flex items-center border-l border-gray-300 h-full pl-8">
         <Search className="mr-4" />
         <input
           type="search"
@@ -20,7 +20,7 @@ export const DesktopHeader = () => {
           id="search"
           placeholder="Search..."
         />
-      </div>
+      </div> */}
       <nav>
         <ul className="flex space-x-8">
           <li>
