@@ -5,12 +5,12 @@
 }
 
 :root {
-  --background: #fffafa;
-  --foreground: #6085b9;
+  --background: #ffffff;
+  --foreground: #7c86ff;
   --yuvi-light-blue: #cce3ff;
-  --yuvi-blue: #6085b9;
+  --yuvi-blue: #7c86ff;
   --yuvi-rose: #ffbbe2;
-  --yuvi-white: #fffafa;
+  --yuvi-white: #ffffff;
 }
 
 @theme inline {
@@ -39,4 +39,8 @@ body {
 
 .overflow-box-scroll-hidden::-webkit-scrollbar {
   display: none;
+}
+
+::-webkit-calendar-picker-indicator {
+  background-image: url("/calendar.svg");
 }

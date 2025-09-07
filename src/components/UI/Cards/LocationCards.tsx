@@ -2,6 +2,7 @@ import { CourseLocationProps } from "@/Types/Location";
 import Image from "next/image";
 import { Star } from "feather-icons-react";
 import { Wifi, Speaker } from "feather-icons-react";
+import { StarRating } from "./StarRating";
 
 export const CourseLocationCard = ({
   name,
@@ -27,45 +28,11 @@ export const CourseLocationCard = ({
       </div>
       <div className="flex flex-col w-full h-1/2 overflow-hidden p-4 gap-2">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold gelasio overflow-hidden text-ellipsis whitespace-nowrap ">
+          <h3 className="text-lg font-semibold  overflow-hidden text-ellipsis whitespace-nowrap ">
             {name}
           </h3>
           <div className="flex items-center gap-1">
-            <Star
-              className=""
-              stroke="#fee685"
-              fill="#fee685"
-              size={18}
-              strokeWidth={1.5}
-            />
-            <Star
-              className=""
-              stroke="#fee685"
-              fill="#fee685"
-              size={18}
-              strokeWidth={1.5}
-            />
-            <Star
-              className=""
-              stroke="#fee685"
-              fill="#fee685"
-              size={18}
-              strokeWidth={1.5}
-            />
-            <Star
-              className=""
-              stroke="#fee685"
-              fill="#fee685"
-              size={18}
-              strokeWidth={1.5}
-            />
-            <Star
-              className=""
-              stroke="#fee685"
-              fill="transparent"
-              size={18}
-              strokeWidth={1.5}
-            />
+            <StarRating rating={rating} />
           </div>
         </div>
         <div className="flex items-center gap-2">
