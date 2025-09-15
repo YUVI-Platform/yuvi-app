@@ -78,3 +78,8 @@ export const locations = [
     latitude: 48.159,
   },
 ];
+
+export const cities = [
+  { id: 1, name: "München" },
+  { id: 2, name: "Innsbruck" },
+];

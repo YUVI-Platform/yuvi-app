@@ -15,15 +15,14 @@ export const CourseLocationCard = ({
   imageUrl,
 }: CourseLocationProps) => {
   return (
-    <div className="flex flex-col w-72 h-72 overflow-hidden bg-white rounded-2xl border border-slate-100 shadow-md cursor-pointer hover:shadow-lg transition-all hover:scale-105">
-      <div className="flex w-full h-1/2 overflow-hidden justify-center items-center bg-indigo-400">
+    <div className="flex flex-col overflow-hidden rounded-2xl h-fit shadow-lg w-80 hover:scale-105 transition-transform duration-300 bg-white cursor-pointer">
+      <div className="flex justify-center items-center bg-indigo-200 overflow-hidden aspect-video">
         <Image
           src={imageUrl}
           alt="Location Placeholder"
-          width={300}
-          height={200}
+          width={400}
+          height={400}
           style={{ objectFit: "cover" }}
-          className="w-full h-auto"
         />
       </div>
       <div className="flex flex-col w-full h-1/2 overflow-hidden p-4 gap-2">

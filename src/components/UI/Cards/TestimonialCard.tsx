@@ -8,6 +8,7 @@ interface TestimonialCardProps {
   image?: string;
   testimonial: string;
   rating: number;
+  type: "motionExpert" | "studioHost" | "athlete";
 }
 
 const TestimonialCard = ({
@@ -15,9 +16,10 @@ const TestimonialCard = ({
   image,
   testimonial,
   rating,
+  type,
 }: TestimonialCardProps) => {
   return (
-    <div className="flex flex-col shadow-lg border border-indigo-50 p-4 rounded-lg aspect-video w-96 gap-4">
+    <div className="flex flex-col justify-between shadow-lg border border-indigo-50 p-4 rounded-2xl aspect-video w-full md:w-96 gap-4">
       <StarRating rating={rating} />
 
       <p className="line-clamp-4 text-gray-500">{testimonial}</p>
@@ -31,7 +33,16 @@ const TestimonialCard = ({
             objectFit="cover"
           />
         </div>
-        <p className="mt-2 font-bold">{name ? name : "Happy Customer"}</p>
+        <div>
+          <p className="mt-2 font-bold">{name ? name : "Happy Customer"}</p>
+          <span>
+            {type === "motionExpert"
+              ? "Motion Experte"
+              : type === "studioHost"
+              ? "Studio Host"
+              : "Athlet"}
+          </span>
+        </div>
       </div>
     </div>
   );
@@ -48,13 +59,15 @@ export const TestimonialData = [
     testimonial:
       "Einfach nur großartig! Das Booking war super einfach und die Kommunikation mit dem Team war top! Tolle experience!",
     rating: 5,
+    type: "motionExpert",
   },
   {
     name: "Erika Mustermann",
     image: "",
     testimonial:
       "Ich bin begeistert von der schnellen und unkomplizierten Abwicklung. Immer wieder gerne!",
-    rating: 245,
+    rating: 4,
+    type: "athlete",
   },
   {
     name: "Hans Müller",
@@ -62,6 +75,7 @@ export const TestimonialData = [
     testimonial:
       "Die Plattform ist sehr benutzerfreundlich und die Auswahl an Dienstleistungen ist riesig.",
     rating: 4,
+    type: "studioHost",
   },
   {
     name: "Lisa Müller",
@@ -69,6 +83,7 @@ export const TestimonialData = [
     testimonial:
       "Eine tolle Erfahrung! Die Trainer sind super kompetent und die Atmosphäre ist einzigartig.",
     rating: 5,
+    type: "athlete",
   },
   {
     name: "Max Mustermann",
@@ -76,6 +91,7 @@ export const TestimonialData = [
     testimonial:
       "Einfach nur großartig! Das Booking war super einfach und die Kommunikation mit dem Team war top! Tolle experience!",
     rating: 5,
+    type: "motionExpert",
   },
   {
     name: "Erika Mustermann",
@@ -83,6 +99,7 @@ export const TestimonialData = [
     testimonial:
       "Ich bin begeistert von der schnellen und unkomplizierten Abwicklung. Immer wieder gerne!",
     rating: 4,
+    type: "studioHost",
   },
   {
     name: "Hans Müller",
@@ -90,6 +107,7 @@ export const TestimonialData = [
     testimonial:
       "Die Plattform ist sehr benutzerfreundlich und die Auswahl an Dienstleistungen ist riesig.",
     rating: 3,
+    type: "athlete",
   },
   {
     name: "Lisa Müller",
@@ -97,5 +115,6 @@ export const TestimonialData = [
     testimonial:
       "Eine tolle Erfahrung! Die Trainer sind super kompetent und die Atmosphäre ist einzigartig.",
     rating: 5,
+    type: "studioHost",
   },
 ];
