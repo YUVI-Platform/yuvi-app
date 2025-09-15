@@ -3,7 +3,7 @@ import { locations } from "@/testdata/locationData";
 
 export default function PopularLocationSection() {
   return (
-    <section className="grid grid-cols-1 md:grid-cols-3 gap-8 ">
+    <section className="grid grid-cols-1 md:grid-cols-3 gap-8 p-6 md:p-0">
       {locations.map((loc) => (
         <CourseLocationCard
           key={loc.id}

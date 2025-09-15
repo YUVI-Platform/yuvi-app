@@ -1,6 +1,6 @@
 import { CourseLocationProps } from "@/Types/Location";
 import Image from "next/image";
-import { Star } from "feather-icons-react";
+
 import { Wifi, Speaker } from "feather-icons-react";
 import { StarRating } from "./StarRating";
 
@@ -15,7 +15,7 @@ export const CourseLocationCard = ({
   imageUrl,
 }: CourseLocationProps) => {
   return (
-    <div className="flex flex-col overflow-hidden rounded-2xl h-fit shadow-lg w-80 hover:scale-105 transition-transform duration-300 bg-white cursor-pointer">
+    <div className="flex flex-col overflow-hidden rounded-2xl h-fit shadow-lg w-full md:w-80 hover:scale-105 transition-transform duration-300 bg-white cursor-pointer">
       <div className="flex justify-center items-center bg-indigo-200 overflow-hidden aspect-video">
         <Image
           src={imageUrl}
