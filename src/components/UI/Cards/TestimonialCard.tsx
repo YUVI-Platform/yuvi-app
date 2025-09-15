@@ -52,7 +52,7 @@ export default TestimonialCard;
 
 // TODO: Random Placeholder Image if no image is provided
 
-export const TestimonialData = [
+export const TestimonialData: TestimonialCardProps[] = [
   {
     name: "Max Mustermann",
     image: "",
