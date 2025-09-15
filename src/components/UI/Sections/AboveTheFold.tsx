@@ -1,6 +1,5 @@
 "use client";
 
-import { Search } from "feather-icons-react";
 import { MultiStateButton } from "../MultiStateButton";
 import React, { useState } from "react";
 import { CitySelector } from "../Selctors";
@@ -8,8 +7,8 @@ import { AnimatePresence, motion } from "framer-motion";
 
 export default function AboveTheFoldSection() {
   const [searchType, setSearchType] = useState("session"); // true for Session, false for Studio"]
-  const [enabled, setEnabled] = useState(false);
-  const [location, setLocation] = useState("");
+  // const [enabled, setEnabled] = useState(false);
+  // const [location, setLocation] = useState("");
   const [date, setDate] = useState("");
 
   const HandleSearchTypeChange = (value: boolean) => {
@@ -18,13 +17,13 @@ export default function AboveTheFoldSection() {
 
   return (
     <main className="flex items-center justify-center h-screen max-h-[1000px] w-full gap-4 bg-[url(/landingpage-placeholder.avif)] bg-no-repeat bg-cover bg-center">
-      <div className="flex flex-col justify-center items-center text-white bg-black/40 w-full h-full gap-8 p-4 md:p-24">
+      <div className="flex flex-col justify-center items-center text-white bg-black/40 w-full h-full gap-8 mt-10 p-4 md:p-24">
         <form
           onSubmit={(e) => e.preventDefault()}
-          className="flex flex-col gap-4 bg-white/90 w-fit border border-white backdrop-blur-sm p-6 pb-12 rounded-4xl justify-center items-center text-black"
+          className="flex flex-col gap-2 md:gap-4 bg-white/90 w-fit border border-white backdrop-blur-sm p-4 md:p-6 pb-12 rounded-4xl justify-center items-center text-black"
         >
           <div className="flex flex-col">
-            <h1 className="text-5xl font-bold text-indigo-400 text-center">
+            <h1 className="text-4xl md:text-5xl text-indigo-400 text-center">
               Your Space To Move!
             </h1>
             <p className="text-md p-4 text-gray-600 text-center sm:text-left">
@@ -54,7 +53,7 @@ export default function AboveTheFoldSection() {
               </motion.div>
             )}
           </AnimatePresence>
-          <div className="flex w-full justify-between border-2 border-indigo-200 rounded-2xl text-indigo-400">
+          <div className="flex w-full min-h-14 justify-between border-2 border-indigo-200 rounded-2xl text-indigo-400">
             <input
               type="date"
               className="w-full h-full outline-none placeholder:text-indigo-400  p-4 text-indigo-400"
@@ -87,7 +86,7 @@ export default function AboveTheFoldSection() {
 
 const SessionSelector = () => {
   return (
-    <select className="w-full h-full outline-none placeholder:text-indigo-400  p-4 text-indigo-400 border-2 border-indigo-200 rounded-2xl">
+    <select className="w-full h-full min-h-14 outline-none placeholder:text-indigo-400  p-4 text-indigo-400 border-2 border-indigo-200 rounded-2xl">
       {SessionTypeData.map((session) => (
         <option
           key={session.value}

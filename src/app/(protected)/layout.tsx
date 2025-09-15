@@ -1,6 +1,6 @@
 import SideNav from "@/components/UI/Navigation/SideNav";
-import { superbase } from "@/utils/supabase/superbaseClient";
-import { redirect } from "next/navigation";
+// import { superbase } from "@/utils/supabase/superbaseClient";
+// import { redirect } from "next/navigation";
 
 export default async function UserDashboardLayout({
   children,

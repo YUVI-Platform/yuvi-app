@@ -1,7 +1,6 @@
 "use client";
 
 import { Field, Label, Switch } from "@headlessui/react";
-import { div } from "framer-motion/client";
 import React, { useState, useEffect } from "react";
 
 interface DateAndTimeInputProps {
@@ -30,6 +29,7 @@ export const CourseAvailabilityStep = () => {
 
   const handleAddDateAndTimeInput = () => {
     setDateAndTimeInputs([...dateAndTimeInputs, { date: "", time: "" }]);
+    console.log(isDisabled);
   };
 
   return (

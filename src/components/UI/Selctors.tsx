@@ -17,7 +17,7 @@ export const CitySelector = () => {
       id="city-select"
       value={selectedCity}
       onChange={handleCityChange}
-      className="flex w-full justify-between border-2 border-indigo-200 rounded-2xl text-indigo-400 p-4 focus:outline-none focus:ring-2 focus:ring-indigo-300"
+      className="flex w-full min-h-14 justify-between border-2 border-indigo-200 rounded-2xl text-indigo-400 p-4 focus:outline-none focus:ring-2 focus:ring-indigo-300"
     >
       {/* Die erste Option ist ein Platzhalter */}
       <option value="" disabled>

@@ -9,14 +9,14 @@ import { CourseAvailabilityStep } from "./MotionExpert/CourseAvailabiltyStep";
 import { PhotoUploadStep } from "./SharedStepps/PhotoUploadStep";
 import { SummaryStep } from "./SharedStepps/PreviewStep";
 import { CoursePricingModellStep } from "./MotionExpert/CoursePricingModellStep";
-import { CompletionStep } from "./SharedStepps/ComplitionStep";
+// import { CompletionStep } from "./SharedStepps/ComplitionStep";
 
 import { Check } from "feather-icons-react";
 
 import { AnimatePresence, motion } from "framer-motion";
 
 // IMPORT TYPES
-import { CourseTypeProps } from "./MotionExpert/CourstTypeStep";
+// import { CourseTypeProps } from "./MotionExpert/CourstTypeStep";
 
 // STEP TYPE
 type Step = {
@@ -69,7 +69,7 @@ const getStepsForRole = (role: Role): Step[] => {
 export const MultiStepForm = ({ role }: { role: Role }) => {
   const steps = getStepsForRole(role);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
-  const [allStepsCompleted, setAllStepsCompleted] = useState(false);
+  // const [allStepsCompleted, setAllStepsCompleted] = useState(false);
 
   const CurrentStep = steps[currentStepIndex].component;
 

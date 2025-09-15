@@ -1,4 +1,5 @@
-import { use, useEffect, useState } from "react";
+// import { use, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 export interface CoursePricingModellStepProps {
   priceModel: string;
@@ -14,12 +15,12 @@ export const CoursePricingModellStep = () => {
     null
   );
 
-  const [pricingDetails, setPricingDetails] =
-    useState<CoursePricingModellStepProps>({
-      priceModel: "pricePerHour",
-      price: null,
-      percentage: null,
-    });
+  // const [pricingDetails, setPricingDetails] =
+  //   useState<CoursePricingModellStepProps>({
+  //     priceModel: "pricePerHour",
+  //     price: null,
+  //     percentage: null,
+  //   });
 
   const handleSetPercentage = (value: number, price: number | null) => {
     if (price !== null) {
