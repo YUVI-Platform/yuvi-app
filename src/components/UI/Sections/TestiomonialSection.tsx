@@ -8,7 +8,7 @@ export default function TestimonialSection() {
       </h2>
 
       <div className=" relative grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-4">
-        {TestimonialData.map((testimonial, index) => (
+        {TestimonialData.slice(0, 6).map((testimonial, index) => (
           <TestimonialCard key={index} {...testimonial} />
         ))}
       </div>

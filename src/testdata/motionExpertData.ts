@@ -8,14 +8,14 @@ export const motionExpertTestData = [
     imageUrl: "/anna-m.webp",
     customerReviews: [
       {
-        reviewerImageUrl: "/julia_s.jpg",
+        reviewerImageUrl: "/character_placeholder_img.png",
         reviewerName: "Maria H.",
         reviewText:
           "Das Training mit Anna hat meine Fitness auf ein neues Level gehoben! Sie ist sehr professionell und geht individuell auf die Bedürfnisse ihrer Klienten ein. Ich fühle mich fitter und gesünder als je zuvor.",
         rating: 5,
       },
       {
-        reviewerImageUrl: "/max_w.jpg",
+        reviewerImageUrl: "/character_placeholder_img.png",
         reviewerName: "Peter S.",
         reviewText:
           "Anna ist eine großartige Trainerin! Ihre Trainingsmethoden sind effektiv und abwechslungsreich. Sie motiviert mich immer wieder, meine Grenzen zu überschreiten. Sehr zu empfehlen!",
@@ -40,14 +40,14 @@ export const motionExpertTestData = [
     imageUrl: "/maximillian_s.webp",
     customerReviews: [
       {
-        reviewerImageUrl: "/max_w.jpg",
+        reviewerImageUrl: "/character_placeholder_img.png",
         reviewerName: "Julia S.",
         reviewText:
           "Das Training mit Maximilian hat meine Flexibilität und mein Wohlbefinden enorm verbessert. Seine ruhige Art und die individuelle Betreuung machen jede Stunde zu einem besonderen Erlebnis.",
         rating: 5,
       },
       {
-        reviewerImageUrl: "/max_w.jpg",
+        reviewerImageUrl: "/character_placeholder_img.png",
         reviewerName: "Markus T.",
         reviewText:
           "Ich habe an Maximilians Yoga-Kurs teilgenommen und war begeistert von seiner einfühlsamen Art. Er geht auf die Bedürfnisse jedes Teilnehmers ein und schafft eine entspannte Atmosphäre.",
@@ -72,14 +72,14 @@ export const motionExpertTestData = [
     imageUrl: "/sophie_wa.jpg",
     customerReviews: [
       {
-        reviewerImageUrl: "/julia_s.jpg",
+        reviewerImageUrl: "/character_placeholder_img.png",
         reviewerName: "Julia S.",
         reviewText:
           "Das Training mit Maximilian hat meine Flexibilität und mein Wohlbefinden enorm verbessert. Seine ruhige Art und die individuelle Betreuung machen jede Stunde zu einem besonderen Erlebnis.",
         rating: 5,
       },
       {
-        reviewerImageUrl: "/julia_s.jpg",
+        reviewerImageUrl: "/character_placeholder_img.png",
         reviewerName: "Markus T.",
         reviewText:
           "Ich habe an Maximilians Yoga-Kurs teilgenommen und war begeistert von seiner einfühlsamen Art. Er geht auf die Bedürfnisse jedes Teilnehmers ein und schafft eine entspannte Atmosphäre.",
@@ -104,14 +104,14 @@ export const motionExpertTestData = [
     imageUrl: "/max_w.jpg",
     customerReviews: [
       {
-        reviewerImageUrl: "/julia_s.jpg",
+        reviewerImageUrl: "/character_placeholder_img.png",
         reviewerName: "Julia S.",
         reviewText:
           "Das Training mit Maximilian hat meine Flexibilität und mein Wohlbefinden enorm verbessert. Seine ruhige Art und die individuelle Betreuung machen jede Stunde zu einem besonderen Erlebnis.",
         rating: 5,
       },
       {
-        reviewerImageUrl: "/julia_s.jpg",
+        reviewerImageUrl: "/character_placeholder_img.png",
         reviewerName: "Markus T.",
         reviewText:
           "Ich habe an Maximilians Yoga-Kurs teilgenommen und war begeistert von seiner einfühlsamen Art. Er geht auf die Bedürfnisse jedes Teilnehmers ein und schafft eine entspannte Atmosphäre.",
@@ -136,14 +136,14 @@ export const motionExpertTestData = [
     imageUrl: "/sophie_peters.jpg",
     customerReviews: [
       {
-        reviewerImageUrl: "/julia_s.jpg",
+        reviewerImageUrl: "/character_placeholder_img.png",
         reviewerName: "Julia S.",
         reviewText:
           "Das Training mit Sophie hat meine Flexibilität und mein Wohlbefinden enorm verbessert. Ihre ruhige Art und die individuelle Betreuung machen jede Stunde zu einem besonderen Erlebnis.",
         rating: 5,
       },
       {
-        reviewerImageUrl: "/max_w.jpg",
+        reviewerImageUrl: "/character_placeholder_img.png",
         reviewerName: "Markus T.",
         reviewText:
           "Ich habe an Sophies Yoga-Kurs teilgenommen und war begeistert von ihrer einfühlsamen Art. Sie geht auf die Bedürfnisse jedes Teilnehmers ein und schafft eine entspannte Atmosphäre.",
@@ -172,14 +172,14 @@ export const motionExpertTestData = [
     imageUrl: "/lena_fischer.jpg",
     customerReviews: [
       {
-        reviewerImageUrl: "/julia_s.jpg",
+        reviewerImageUrl: "/character_placeholder_img.png",
         reviewerName: "Maria H.",
         reviewText:
           "Das Training mit Lena hat meine Fitness auf ein neues Level gehoben! Sie ist sehr professionell und geht individuell auf die Bedürfnisse ihrer Klienten ein. Ich fühle mich fitter und gesünder als je zuvor.",
         rating: 5,
       },
       {
-        reviewerImageUrl: "/max_w.jpg",
+        reviewerImageUrl: "/character_placeholder_img.png",
         reviewerName: "Peter S.",
         reviewText:
           "Lena ist eine großartige Trainerin! Ihre Trainingsmethoden sind effektiv und abwechslungsreich. Sie motiviert mich immer wieder, meine Grenzen zu überschreiten. Sehr zu empfehlen!",
@@ -204,14 +204,14 @@ export const motionExpertTestData = [
     imageUrl: "/jonas_m.jpg",
     customerReviews: [
       {
-        reviewerImageUrl: "/lisa_m.jpg",
+        reviewerImageUrl: "/character_placeholder_img.png",
         reviewerName: "Lisa M.",
         reviewText:
           "Das Training mit Jonas war eine großartige Erfahrung! Seine Energie und Motivation sind ansteckend. Ich habe meine Ausdauer und Kraft deutlich verbessert. Sehr zu empfehlen!",
         rating: 5,
       },
       {
-        reviewerImageUrl: "/tom_k.jpg",
+        reviewerImageUrl: "/character_placeholder_img.png",
         reviewerName: "Tom K.",
         reviewText:
           "Jonas ist ein fantastischer Trainer! Er hat ein tolles Gespür dafür, die Teilnehmer zu motivieren und ihre individuellen Stärken zu fördern.",
@@ -236,14 +236,14 @@ export const motionExpertTestData = [
     imageUrl: "/laura_n.jpg",
     customerReviews: [
       {
-        reviewerImageUrl: "/julia_s.jpg",
+        reviewerImageUrl: "/character_placeholder_img.png",
         reviewerName: "Julia S.",
         reviewText:
           "Das Training mit Laura hat meine Flexibilität und mein Wohlbefinden enorm verbessert. Ihre ruhige Art und die individuelle Betreuung machen jede Stunde zu einem besonderen Erlebnis.",
         rating: 5,
       },
       {
-        reviewerImageUrl: "/markus_t.jpg",
+        reviewerImageUrl: "/character_placeholder_img.png",
         reviewerName: "Markus T.",
         reviewText:
           "Ich habe an Lauras Yoga-Kurs teilgenommen und war begeistert von ihrer einfühlsamen Art. Sie geht auf die Bedürfnisse jedes Teilnehmers ein und schafft eine entspannte Atmosphäre.",

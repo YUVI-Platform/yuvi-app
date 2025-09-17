@@ -12,7 +12,7 @@ const gelasio = Gelasio({ variable: "--font-gelasio", subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "YUVI ",
-  description: "A platform for Sport collaboration",
+  description: "Dein Marktplatz für Bewegungskurse",
 };
 
 export default function RootLayout({

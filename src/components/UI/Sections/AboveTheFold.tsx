@@ -20,13 +20,13 @@ export default function AboveTheFoldSection() {
       <div className="flex flex-col justify-center items-center text-white bg-black/40 w-full h-full gap-8 mt-10 p-4 md:p-24">
         <form
           onSubmit={(e) => e.preventDefault()}
-          className="flex flex-col gap-2 md:gap-4 bg-white/90 w-fit border border-white backdrop-blur-sm p-4 md:p-6 pb-12 rounded-4xl justify-center items-center text-black"
+          className="flex flex-col gap-4 bg-white/90 w-fit border border-white backdrop-blur-sm p-4 md:p-6 pb-12 rounded-4xl justify-center items-center text-black"
         >
-          <div className="flex flex-col">
-            <h1 className="text-4xl md:text-5xl text-indigo-400 text-center">
+          <div className="flex flex-col mt-6">
+            <h1 className="text-3xl md:text-5xl font-medium text-indigo-400 text-center">
               Your Space To Move!
             </h1>
-            <p className="text-md p-4 text-gray-600 text-center sm:text-left">
+            <p className="text-sm md:text-md p-4 text-slate-500 text-center sm:text-left">
               Finde Jetzt dein Passendes Studio oder Motion Session in deiner
               Nähe!
             </p>

@@ -33,7 +33,7 @@ export const LoginForm = () => {
     if (error) {
       console.error("Login error:", error);
     } else {
-      return redirect("/userdashboard");
+      return redirect("/dashboard");
     }
   };
 

@@ -23,7 +23,7 @@ const MotionExpertsSection = () => {
       {/* Hero: Bild + Reviews */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-10 lg:gap-16 mb-10 sm:mb-16">
         {/* Großes Bild */}
-        <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-indigo-200">
+        <div className="relative w-full rounded-xl overflow-hidden bg-indigo-200">
           <Image
             src={expert.imageUrl || "/character_placeholder_img.png"}
             alt={expert.name}
@@ -41,7 +41,7 @@ const MotionExpertsSection = () => {
               key={index}
               className="bg-white rounded-2xl border border-indigo-50 shadow-sm sm:shadow-md"
             >
-              <p className="text-slate-600 p-4 sm:p-5 text-base sm:text-lg line-clamp-6">
+              <p className="text-slate-600 p-4 sm:p-5 text-base sm:text-lg line-clamp-4">
                 {review.reviewText}
               </p>
 
@@ -102,7 +102,7 @@ const MotionExpertsSection = () => {
         </div>
 
         {/* Trainingsbild */}
-        <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-indigo-100">
+        <div className="relative w-full rounded-2xl overflow-hidden bg-indigo-100">
           <Image
             src={
               expert.trainingsImageUrlArray?.[randomIndex] ||

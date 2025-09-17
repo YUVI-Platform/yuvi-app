@@ -11,7 +11,7 @@ export default function ClientLayout({
 }) {
   const pathname = usePathname();
   const isDashboard =
-    pathname.includes("/userdashboard") || pathname.includes("/login");
+    pathname.includes("/dashboard") || pathname.includes("/login");
 
   return (
     <>
