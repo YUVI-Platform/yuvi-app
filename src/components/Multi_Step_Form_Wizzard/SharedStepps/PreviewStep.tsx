@@ -1,90 +1,122 @@
-import { Speaker, Star, Wifi } from "feather-icons-react";
+"use client";
+import MultiStepFormDataTypes from "@/Types/MultiStepWizzardTypes";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Speaker,
+  Star,
+  Wifi,
+} from "feather-icons-react";
 import Image from "next/image";
+import { useState } from "react";
 
-export const SummaryStep = () => {
+export const SummaryStep = ({
+  formData,
+}: {
+  formData: MultiStepFormDataTypes;
+}) => {
   return (
-    <div className="flex flex-col items-center justify-center h-full w-full">
-      <h2 className="text-2xl font-bold ">Bitte überprüfe deine Eingaben.</h2>
+    <div className="flex flex-col items-center  h-full w-full bg-indigo-50 rounded-2xl overflow-hidden overflow-y-scroll">
+      <h1 className="text-md flex bg-red-500 text-white w-full justify-center p-1">
+        Bitte überprüfe deine Eingaben.
+      </h1>
+      <ImagePreviewCarousel
+        imagePreviews={
+          formData.imagePreviews || ["/landingpage-placeholder.avif"]
+        }
+      />
+      <div className="flex flex-col items-start px-4 w-full gap-4 overflow-hidden overflow-y-scroll p-4 max-h-80">
+        <span className="text-3xl font-bold text-indigo-400 mt-4 w-full">
+          {formData.studioName}
+        </span>
+        <span className="text-xl text-slate-600 mt-4 w-full">
+          {formData?.studioAvailability?.startDate &&
+          formData?.studioAvailability?.endDate
+            ? `${new Date(
+                formData.studioAvailability.startDate
+              ).toLocaleDateString()} bis ${new Date(
+                formData.studioAvailability.endDate
+              ).toLocaleDateString()}`
+            : "..."}
+        </span>
 
-      <div className="w-[500px] overflow-x-auto  overflow-box-scroll-hidden">
-        <div className="flex gap-4 p-4 rounded-2xl min-w-max">
-          {[...Array(5)].map((_, index) => (
-            <div
+        <span className="text-md text-gray-600 mt-1 w-full">
+          {formData?.studioAddress?.street
+            ? `${formData.studioAddress?.street}, ${formData.studioAddress?.zip} ${formData.studioAddress?.city}`
+            : "Keine Adresse angegeben"}
+        </span>
+        <span>
+          {formData.studioSize && (
+            <span className="text-md text-gray-600 mt-1 w-full">
+              Studio Größe: {formData.studioSize} m²
+            </span>
+          )}
+        </span>
+        <span className="flex items-center gap-2">
+          {formData.amenities?.map((amenity, index) => (
+            <span
               key={index}
-              className="flex-shrink-0 w-44 h-28 rounded-xl overflow-hidden border border-gray-200 shadow-sm"
+              className="text-md text-slate-600 bg-slate-300 flex justify-center items-center w-full rounded-full px-2 py-1"
             >
-              <Image
-                src="/location-test-image.jpg"
-                alt={`Preview ${index}`}
-                width={176}
-                height={112}
-                className="w-full h-full object-cover"
-              />
+              {amenity}
+            </span>
+          ))}
+        </span>
+        <span className="text-md text-gray-600 mt-1 w-full">
+          {formData.studioDescription || "Keine Beschreibung angegeben"}
+        </span>
+        <span>
+          {formData.studioAvailability?.weeklySchedule?.map((day) => (
+            <div
+              key={day.day + day.from + day.to}
+              className="text-md text-gray-600 mt-1 w-full"
+            >
+              {day.day}: {day.from} - {day.to}
             </div>
           ))}
-        </div>
+        </span>
       </div>
+    </div>
+  );
+};
 
-      <div className="flex flex-col items-start gap-4">
-        <div className="flex items-center justify-between w-full mt-6 gap-16">
-          <h3 className="text-3xl font-semibold gelasio">
-            Yoga Kurs mit Robin
-          </h3>
-          <div className="flex items-center gap-1">
-            <Star className="" fill="transparent" size={18} strokeWidth={1.5} />
-            <Star className="" fill="transparent" size={18} strokeWidth={1.5} />
-            <Star className="" fill="transparent" size={18} strokeWidth={1.5} />
-            <Star className="" fill="transparent" size={18} strokeWidth={1.5} />
-            <Star className="" fill="transparent" size={18} strokeWidth={1.5} />
-          </div>
-        </div>
-        <div className="flex justify-between w-full gap-16">
-          <div>
-            <p className="text-sm">Yoga, Pilates, CrossFit.</p>
-            <p className="text-sm">Yuvi Certified motion Expert</p>
-            <p className="text-xs">1.3 km entfernt</p>
-          </div>
-          <div>
-            <h3 className="font-semibold">Kurstermine</h3>
-            <ul className="list-disc list-inside">
-              <li>Mo. 20.03.25, 10:00 - 11:00 Uhr</li>
-              <li>Mi. 22.03.25, 18:00 - 19:00 Uhr</li>
-              <li>Fr. 24.03.25, 08:00 - 09:00 Uhr</li>
-            </ul>
-          </div>
-        </div>
-        <hr className="w-full h-0.5 border-0 rounded-full bg-yuvi-light-blue my-4" />
-        <h3 className="font-semibold">Location Details</h3>
-        <div className="w-[500px] overflow-x-auto  overflow-box-scroll-hidden">
-          <div className="flex gap-4 p-4 rounded-2xl min-w-max">
-            {[...Array(5)].map((_, index) => (
-              <div
-                key={index}
-                className="flex-shrink-0 w-44 h-28 rounded-xl overflow-hidden border border-gray-200 shadow-sm"
-              >
-                <Image
-                  src="/location-test-image.jpg"
-                  alt={`Preview ${index}`}
-                  width={176}
-                  height={112}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="flex flex-col w-full h-1/2 overflow-hidden">
-          <div className="flex items-center justify-between w-full mt-6 gap-16">
-            <h3 className="font-semibold">Helles Loft</h3>
-            <p>01.01.2024 - 31.12.2024</p>
-          </div>
-          <p>Musterstraße 123, 12345 Musterstadt</p>
-          <p>100 m²</p>
-          <div className="flex items-center gap-4">
-            <Wifi className="" size={16} strokeWidth={2} />
-            <Speaker className="" size={16} strokeWidth={2} />
-          </div>
-        </div>
+export default SummaryStep;
+
+const ImagePreviewCarousel = ({
+  imagePreviews,
+}: {
+  imagePreviews: string[];
+}) => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  return (
+    <div className="w-full overflow-hidden flex flex-col items-center gap-4">
+      <div className="relative max-h-[200px]">
+        <Image
+          src={imagePreviews[currentIndex]}
+          alt={`Preview ${currentIndex}`}
+          className="w-full object-cover aspect-video"
+          width={1280}
+          height={720}
+        />
+        <button
+          onClick={() =>
+            setCurrentIndex(
+              (prev) => (prev - 1 + imagePreviews.length) % imagePreviews.length
+            )
+          }
+          className="absolute top-1/2 left-2 bg-white text-gray-800 text-xl px-3 py-1 rounded opacity-70 hover:opacity-100"
+        >
+          <ChevronLeft />
+        </button>
+        <button
+          onClick={() =>
+            setCurrentIndex((prev) => (prev + 1) % imagePreviews.length)
+          }
+          className="absolute top-1/2 right-2 bg-white text-gray-800 text-xl px-3 py-1 rounded opacity-70 hover:opacity-100"
+        >
+          <ChevronRight />
+        </button>
       </div>
     </div>
   );

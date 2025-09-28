@@ -4,6 +4,7 @@ import {
   Calendar,
   DollarSign,
   Home,
+  MessageSquare,
   PlusCircle,
   Search,
   User,
@@ -20,12 +21,17 @@ const AdminSideNavData: SideNavItemType[] = [
     href: "/dashboard/admin/manageteams",
     icon: <Users className="h-5 w-5 mr-2" />,
   },
+  {
+    name: "Chat",
+    href: "/dashboard/chat",
+    icon: <Home className="h-5 w-5 mr-2" />,
+  },
 ];
 
 const MotionExpertSideNavData: SideNavItemType[] = [
   {
     name: "My Sessions",
-    href: "/dashboard/motionexpert/mysessions",
+    href: "/dashboard/booking",
     icon: <Calendar className="h-5 w-5 mr-2" />,
   },
   {
@@ -35,15 +41,20 @@ const MotionExpertSideNavData: SideNavItemType[] = [
   },
   {
     name: "Earnings",
-    href: "/dashboard/motionexpert/earnings",
+    href: "/dashboard/earnings",
     icon: <DollarSign className="h-5 w-5 mr-2" />,
+  },
+  {
+    name: "Chat",
+    href: "/dashboard/chat",
+    icon: <MessageSquare className="h-5 w-5 mr-2" />,
   },
 ];
 
 const StudioHostSideNavData: SideNavItemType[] = [
   {
     name: "My Bookings",
-    href: "/dashboard/studiohost/mybookings",
+    href: "/dashboard/booking",
     icon: <Calendar className="h-5 w-5 mr-2" />,
   },
   {
@@ -53,13 +64,18 @@ const StudioHostSideNavData: SideNavItemType[] = [
   },
   {
     name: "Manage Studio",
-    href: "/dashboard/studiohost/managestudio",
+    href: "/dashboard/studiohost/mystudios",
     icon: <Home className="h-5 w-5 mr-2" />,
   },
   {
     name: "Earnings",
-    href: "/dashboard/studiohost/earnings",
+    href: "/dashboard/earnings",
     icon: <DollarSign className="h-5 w-5 mr-2" />,
+  },
+  {
+    name: "Chat",
+    href: "/dashboard/chat",
+    icon: <MessageSquare className="h-5 w-5 mr-2" />,
   },
 ];
 
@@ -78,6 +94,11 @@ const AthleteSideNavData: SideNavItemType[] = [
     name: "My Progress",
     href: "/dashboard/athlete/myprogress",
     icon: <BarChart className="h-5 w-5 mr-2" />,
+  },
+  {
+    name: "Chat",
+    href: "/dashboard/chat",
+    icon: <MessageSquare className="h-5 w-5 mr-2" />,
   },
 ];
 

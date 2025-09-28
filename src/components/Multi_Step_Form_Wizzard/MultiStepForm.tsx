@@ -14,15 +14,24 @@ import { CoursePricingModellStep } from "./MotionExpert/CoursePricingModellStep"
 import { Check } from "feather-icons-react";
 
 import { AnimatePresence, motion } from "framer-motion";
+import StudioDetailsStep from "./StudioHost/StudioDetailsStep";
+
+import { superbase } from "@/utils/supabase/superbaseClient";
 
 // IMPORT TYPES
+import MultiStepFormDataTypes from "@/Types/MultiStepWizzardTypes";
+import StudioAvailabilityStep from "./StudioHost/StudioAvailabliltyStep";
+
 // import { CourseTypeProps } from "./MotionExpert/CourstTypeStep";
 
 // STEP TYPE
 type Step = {
   id: string;
   label: string;
-  component: React.FC;
+  component: React.FC<{
+    formData: MultiStepFormDataTypes;
+    setFormData: React.Dispatch<React.SetStateAction<MultiStepFormDataTypes>>;
+  }>;
 };
 export type Role = "motionExpert" | "studioHost" | "athlete";
 
@@ -50,24 +59,35 @@ const getStepsForRole = (role: Role): Step[] => {
     case "studioHost":
       return [
         { id: "welcome", label: "Willkommen", component: WelcomeCustomerStep },
-        { id: "course", label: "Kursdetails", component: CourseDetailsStep },
-      ];
-    case "athlete":
-      return [
-        { id: "welcome", label: "Willkommen", component: WelcomeCustomerStep },
-        { id: "course", label: "Kursdetails", component: CourseDetailsStep },
+        {
+          id: "studioDetails",
+          label: "Studio Details",
+          component: StudioDetailsStep,
+        },
+        {
+          id: "availability",
+          label: "Verfügbarkeit",
+          component: StudioAvailabilityStep,
+        },
+        { id: "pictures", label: "Fotos", component: PhotoUploadStep },
+
+        { id: "preview", label: "Vorschau", component: SummaryStep },
       ];
     default:
       return [
         { id: "welcome", label: "Willkommen", component: WelcomeCustomerStep },
-        { id: "course", label: "Kursdetails", component: CourseDetailsStep },
       ];
   }
 };
 
+const {
+  data: { user },
+} = await superbase.auth.getUser();
+
 // MAIN FORM COMPONENT
 export const MultiStepForm = ({ role }: { role: Role }) => {
   const steps = getStepsForRole(role);
+  const [formData, setFormData] = useState<MultiStepFormDataTypes>({});
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   // const [allStepsCompleted, setAllStepsCompleted] = useState(false);
 
@@ -88,12 +108,37 @@ export const MultiStepForm = ({ role }: { role: Role }) => {
     }
   };
 
+  const handleSubmit = async (
+    formData: MultiStepFormDataTypes,
+    userId: string
+  ) => {
+    const { error } = await superbase.from("studios").insert([
+      {
+        user_id: userId,
+        studio_name: formData.studioName,
+        studio_address: formData.studioAddress,
+        contact_number: formData.contactNumber,
+        studio_size: formData.studioSize,
+        studio_description: formData.studioDescription,
+        amenities: formData.amenities,
+        availability: formData.studioAvailability, // stored as JSON
+      },
+    ]);
+
+    if (error) {
+      console.error("Fehler beim Speichern des Studios:", error);
+      return false;
+    }
+
+    return true;
+  };
+
   return (
     <div className="grid grid-cols-[300px_800px] min-h-[800px] bg-white overflow-hidden rounded-4xl shadow-lg p-8">
       {/* STEP INDICATOR */}
       {/* TO DO: Implement possiblity to step by clicking on Step Indicator */}
       <div className="grid grid-cols-1 justify-items-start bg-indigo-400 rounded-2xl p-8 gap-4 shadow-md">
-        <h2 className="text-2xl font-semibold text-white">Inserieren</h2>
+        <h2 className="text-2xl font-semibold text-white">Steps</h2>
         {steps.map((steps, index) => (
           <div key={steps.id} className="flex items-center gap-2 mb-4">
             <span
@@ -138,7 +183,7 @@ export const MultiStepForm = ({ role }: { role: Role }) => {
               transition={{ duration: 0.4 }}
               className="w-full h-full flex items-center justify-center"
             >
-              <CurrentStep />
+              <CurrentStep formData={formData} setFormData={setFormData} />
             </motion.div>
           </AnimatePresence>
         </div>
@@ -156,13 +201,31 @@ export const MultiStepForm = ({ role }: { role: Role }) => {
 
           <button
             className="flex justify-center items-center bg-indigo-400 p-4 rounded-2xl cursor-pointer text-yuvi-white hover:bg-fuchsia-300 hover:text-white transition-all"
-            onClick={nextStep}
+            onClick={
+              currentStepIndex === steps.length - 1
+                ? async () => {
+                    // Replace with actual userId retrieval logic
+                    const userId = user?.id;
+                    if (!userId) {
+                      console.error("User ID not found. Cannot submit form.");
+                      return;
+                    }
+                    console.log("Submitting form with data:", formData);
+                    await handleSubmit(formData, userId);
+                  }
+                : nextStep
+            }
           >
             {currentStepIndex === 0 && "Los gehts"}
             {currentStepIndex !== 0 &&
               currentStepIndex < steps.length - 1 &&
               "weiter"}
-            {currentStepIndex === steps.length - 1 && "Launch!"}
+            {currentStepIndex === steps.length - 1 && role === "studioHost"
+              ? "Hosten!"
+              : null}
+            {currentStepIndex === steps.length - 1 && role === "motionExpert"
+              ? "Launchen!"
+              : null}
           </button>
         </div>
       </div>

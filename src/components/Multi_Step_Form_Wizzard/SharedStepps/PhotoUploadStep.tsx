@@ -2,10 +2,15 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import MultiStepFormDataTypes from "@/Types/MultiStepWizzardTypes";
 
-export const PhotoUploadStep = () => {
-  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
-  const [previews, setPreviews] = useState<string[]>([]);
+export const PhotoUploadStep = ({
+  formData,
+  setFormData,
+}: {
+  formData: MultiStepFormDataTypes;
+  setFormData: React.Dispatch<React.SetStateAction<MultiStepFormDataTypes>>;
+}) => {
   const [error, setError] = useState<string | null>(null);
   const maxFileSize = 5 * 1024 * 1024; // 5MB
 
@@ -22,7 +27,8 @@ export const PhotoUploadStep = () => {
         setError(`"${file.name}" ist größer als 5MB.`);
         return;
       }
-      if (uploadedFiles.find((f) => f.name === file.name)) {
+
+      if (formData.uploadedFiles?.find((f) => f.name === file.name)) {
         setError(`"${file.name}" wurde bereits hochgeladen.`);
         return;
       }
@@ -32,15 +38,28 @@ export const PhotoUploadStep = () => {
     });
 
     if (validFiles.length > 0) {
-      setUploadedFiles((prev) => [...prev, ...validFiles]);
-      setPreviews((prev) => [...prev, ...newPreviews]);
+      setFormData((prev) => ({
+        ...prev,
+        uploadedFiles: [...(prev.uploadedFiles || []), ...validFiles],
+        imagePreviews: [...(prev.imagePreviews || []), ...newPreviews],
+      }));
       setError(null);
     }
   };
 
   const removeImage = (index: number) => {
-    setUploadedFiles((prev) => prev.filter((_, i) => i !== index));
-    setPreviews((prev) => prev.filter((_, i) => i !== index));
+    const updatedFiles = (formData.uploadedFiles || []).filter(
+      (_, i) => i !== index
+    );
+    const updatedPreviews = (formData.imagePreviews || []).filter(
+      (_, i) => i !== index
+    );
+
+    setFormData((prev) => ({
+      ...prev,
+      uploadedFiles: updatedFiles,
+      imagePreviews: updatedPreviews,
+    }));
   };
 
   return (
@@ -60,9 +79,9 @@ export const PhotoUploadStep = () => {
 
       {error && <p className="text-red-500 text-sm font-semibold">{error}</p>}
 
-      {previews.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mt-4  p-8 w-full max-h-[400px] overflow-y-scroll overflow-box-scroll-hidden">
-          {previews.map((src, index) => (
+      {formData.imagePreviews && formData.imagePreviews.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mt-4 p-8 w-full max-h-[400px] overflow-y-scroll">
+          {formData.imagePreviews.map((src, index) => (
             <div
               key={index}
               className="relative group border rounded-lg overflow-hidden"
