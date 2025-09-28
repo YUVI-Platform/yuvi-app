@@ -1,11 +1,32 @@
 "use client";
 import { useSupabaseUser } from "@/utils/supabase/getUser";
-import { Layout, LogOut, PlusCircle, Settings } from "feather-icons-react";
+import { Layout, LogOut, Settings } from "feather-icons-react";
 import Link from "next/link";
 import React from "react";
 
+import {
+  AdminSideNavData,
+  MotionExpertSideNavData,
+  AthleteSideNavData,
+  StudioHostSideNavData,
+} from "@/data/sideNavData";
+
+import { SideNavItemType } from "@/Types/Navigation";
+
 export default function SideNav() {
   const { user } = useSupabaseUser();
+
+  let SideNavData: SideNavItemType[] = [];
+  if (user?.user_metadata.role === "admin") {
+    SideNavData = AdminSideNavData;
+  } else if (user?.user_metadata.role === "motionExpert") {
+    SideNavData = MotionExpertSideNavData;
+  } else if (user?.user_metadata.role === "studioHost") {
+    SideNavData = StudioHostSideNavData;
+  } else if (user?.user_metadata.role === "athlete") {
+    SideNavData = AthleteSideNavData;
+  }
+
   return (
     <aside className="w-full h-screen p-8 bg-transparent">
       <nav className="flex flex-col shadow-xl rounded-3xl overflow-hidden h-full bg-white justify-between">
@@ -20,17 +41,20 @@ export default function SideNav() {
             <Layout className="h-5 w-5 mr-2" />
             Dashboard
           </Link>
-          <Link
-            href="/dashboard/advert"
-            className="p-4 hover:bg-indigo-50 hover:text-indigo-500 flex w-full items-center"
-          >
-            <PlusCircle className="h-5 w-5 mr-2" />
-            Neues Inserat
-          </Link>
+          {SideNavData.map((item: SideNavItemType) => (
+            <Link
+              key={item.name + item.href}
+              href={item.href}
+              className="p-4 hover:bg-indigo-50 hover:text-indigo-500 flex w-full items-center"
+            >
+              {item.icon}
+              {item.name}
+            </Link>
+          ))}
         </div>
         <div className="flex flex-col items-center w-full">
           <Link
-            href="/profile"
+            href="/dashboard/profile"
             className="flex w-full gap-4 p-4 hover:bg-indigo-50 hover:text-indigo-500 "
           >
             <Settings className="h-5 w-5" />

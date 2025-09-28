@@ -1,13 +1,55 @@
 "use client";
-import Image from "next/image";
+// import Image from "next/image";
 import React from "react";
-import { superbase } from "@/utils/supabase/superbaseClient";
+// import { superbase } from "@/utils/supabase/superbaseClient";
+// import { ChevronDown, ChevronUp } from "feather-icons-react";
 export default function RegisterPage() {
   const [type, setType] = React.useState<
     "motionExpert" | "studioHost" | "athlete"
   >("motionExpert");
   const [userId, setUserId] = React.useState<string>("");
   const [userName, setUserName] = React.useState<string>("");
+  // const [userBio, setUserBio] = React.useState<string>("");
+  // const [userSkills, setUserSkills] = React.useState<string[]>([]);
+  // const [userQualifications, setUserQualifications] = React.useState<string[]>(
+  //   []
+  // );
+  // const [openSkillsDropdown, setOpenSkillsDropdown] = React.useState(false);
+  // const [openQualificationsDropdown, setOpenQualificationsDropdown] =
+  //   React.useState(false);
+
+  const typeOptions = ["motionExpert", "studioHost", "athlete", "admin"];
+
+  // const skills = [
+  //   "Yoga",
+  //   "Pilates",
+  //   "Cardio",
+  //   "Strength Training",
+  //   "Dance",
+  //   "Martial Arts",
+  //   "Cycling",
+  //   "Running",
+  //   "Swimming",
+  //   "CrossFit",
+  //   "HIIT (High-Intensity Interval Training)",
+  //   "Functional Training",
+  //   "Flexibility & Mobility",
+  //   "Mindfulness & Meditation",
+  //   "Nutrition Coaching",
+  // ];
+
+  // const qualifications = [
+  //   "Certified Personal Trainer",
+  //   "Yoga Instructor Certification",
+  //   "Pilates Instructor Certification",
+  //   "Group Fitness Instructor Certification",
+  //   "Strength and Conditioning Specialist",
+  //   "Nutrition Specialist",
+  //   "First Aid and CPR Certification",
+  //   "Specialized Training Certifications (e.g., TRX, Kettlebell, etc.)",
+  //   "Experience with Rehabilitation Exercises",
+  //   "Sports-Specific Training Certifications",
+  // ];
 
   const setUserRoleAsAdmin = async (
     userId: string,
@@ -103,10 +145,32 @@ export default function RegisterPage() {
           Register
         </button>
       </form> */}
-      <div className="flex flex-col gap-4 w-[400px] p-6 bg-white rounded-2xl shadow-lg">
+      <div className="flex flex-col gap-4 w-[600px] p-6 bg-white rounded-2xl shadow-lg">
+        Register Page – Add User Role (Admin Only)
+        <div>
+          <h2>Select Type </h2>
+          <div>
+            {typeOptions.map((option) => (
+              <button
+                key={option}
+                type="button"
+                onClick={() => {
+                  setType(option as "motionExpert" | "studioHost" | "athlete");
+                }}
+                className={`m-1 px-3 py-1 rounded-full border cursor-pointer ${
+                  type === option
+                    ? "bg-indigo-400 text-white border-indigo-400"
+                    : "bg-white text-gray-700 border-gray-300"
+                }`}
+              >
+                {option}
+              </button>
+            ))}
+          </div>
+        </div>
         <input
           type="text"
-          placeholder="Name"
+          placeholder="Alias / User Name"
           onChange={(e) => setUserName(e.target.value)}
           className="border border-indigo-100 rounded-md p-2 w-full bg-white"
         />
@@ -116,26 +180,86 @@ export default function RegisterPage() {
           onChange={(e) => setUserId(e.target.value)}
           className="border border-indigo-100 rounded-md p-2 w-full bg-white"
         />
-        <div className="flex gap-4">
-          <button
-            onClick={() => setType("athlete")}
-            className="flex p-2 bg-green-400 rounded-2xl text-white font-bold"
-          >
-            Athlete
-          </button>
-          <button
-            onClick={() => setType("motionExpert")}
-            className="flex p-2 bg-blue-400 rounded-2xl text-white font-bold"
-          >
-            Motion Expert
-          </button>
-          <button
-            onClick={() => setType("studioHost")}
-            className="flex p-2 bg-orange-400 rounded-2xl text-white font-bold"
-          >
-            Studio Host
-          </button>
-        </div>
+        {/* <textarea
+          placeholder="Bio"
+          onChange={(e) => setUserBio(e.target.value)}
+          className="border border-indigo-100 rounded-md p-2 w-full bg-white"
+          rows={5}
+        /> */}
+        {/* {}
+        {type === "motionExpert" && (
+          <>
+            <div
+              onClick={() => setOpenSkillsDropdown(!openSkillsDropdown)}
+              className="cursor-pointer border border-indigo-100 rounded-md p-2 w-full bg-white"
+            >
+              <h2 className="flex justify-between items-center">
+                Select Skills{" "}
+                {openSkillsDropdown ? <ChevronUp /> : <ChevronDown />}
+              </h2>
+              <div className={openSkillsDropdown ? "" : "hidden"}>
+                {skills.map((skill) => (
+                  <button
+                    key={skill}
+                    type="button"
+                    onClick={() => {
+                      if (userSkills.includes(skill)) {
+                        setUserSkills(userSkills.filter((s) => s !== skill));
+                      } else {
+                        setUserSkills([...userSkills, skill]);
+                      }
+                    }}
+                    className={`m-1 px-3 py-1 rounded-full border ${
+                      userSkills.includes(skill)
+                        ? "bg-indigo-400 text-white border-indigo-400"
+                        : "bg-white text-gray-700 border-gray-300"
+                    }`}
+                  >
+                    {skill}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div
+              onClick={() =>
+                setOpenQualificationsDropdown(!openQualificationsDropdown)
+              }
+              className="cursor-pointer border border-indigo-100 rounded-md p-2 w-full bg-white"
+            >
+              <h2 className="flex justify-between items-center">
+                Select Qualifications{" "}
+                {openQualificationsDropdown ? <ChevronUp /> : <ChevronDown />}
+              </h2>
+              <div className={openQualificationsDropdown ? "" : "hidden"}>
+                {qualifications.map((qualification) => (
+                  <button
+                    key={qualification}
+                    type="button"
+                    onClick={() => {
+                      if (userQualifications.includes(qualification)) {
+                        setUserQualifications(
+                          userQualifications.filter((q) => q !== qualification)
+                        );
+                      } else {
+                        setUserQualifications([
+                          ...userQualifications,
+                          qualification,
+                        ]);
+                      }
+                    }}
+                    className={`m-1 px-3 py-1 rounded-full border ${
+                      userQualifications.includes(qualification)
+                        ? "bg-indigo-400 text-white border-indigo-400"
+                        : "bg-white text-gray-700 border-gray-300"
+                    }`}
+                  >
+                    {qualification}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </>
+        )} */}
         <button
           onClick={async () => {
             if (!userId) {
@@ -144,7 +268,7 @@ export default function RegisterPage() {
             }
             await setUserRoleAsAdmin(userId, type);
           }}
-          className="flex p-2 bg-indigo-400 rounded-2xl text-white font-bold"
+          className="flex p-2 bg-indigo-400 rounded-2xl text-white font-bold text-center justify-center hover:bg-indigo-500 transition-colors"
         >
           Add as{" "}
           {type === "athlete"
