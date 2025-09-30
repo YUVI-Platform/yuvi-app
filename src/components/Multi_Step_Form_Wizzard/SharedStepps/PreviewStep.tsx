@@ -1,12 +1,6 @@
 "use client";
 import MultiStepFormDataTypes from "@/Types/MultiStepWizzardTypes";
-import {
-  ChevronLeft,
-  ChevronRight,
-  Speaker,
-  Star,
-  Wifi,
-} from "feather-icons-react";
+import { ChevronLeft, ChevronRight } from "feather-icons-react";
 import Image from "next/image";
 import { useState } from "react";
 

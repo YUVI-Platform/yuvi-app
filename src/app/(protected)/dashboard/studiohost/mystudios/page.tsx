@@ -58,13 +58,11 @@ const MyStudios = () => {
   );
 };
 
-export function StudioCardSkeleton() {
-  return (
-    <div className="animate-pulse flex flex-col space-y-4 p-4 border border-gray-200 rounded-xl shadow-sm">
-      <div className="bg-gray-200 h-48 w-full rounded-lg"></div>
-      <div className="bg-gray-200 h-6 w-3/4 rounded-md"></div>
-      <div className="bg-gray-200 h-4 w-1/2 rounded-md"></div>
-      <div className="bg-gray-200 h-4 w-1/3 rounded-md"></div>
-    </div>
-  );
-}
+const StudioCardSkeleton = () => (
+  <div className="animate-pulse flex flex-col space-y-4 p-4 border border-gray-200 rounded-xl shadow-sm">
+    <div className="bg-gray-200 h-48 w-full rounded-lg"></div>
+    <div className="bg-gray-200 h-6 w-3/4 rounded-md"></div>
+    <div className="bg-gray-200 h-4 w-1/2 rounded-md"></div>
+    <div className="bg-gray-200 h-4 w-1/3 rounded-md"></div>
+  </div>
+);

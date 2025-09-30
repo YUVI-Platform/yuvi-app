@@ -7,9 +7,10 @@ export async function uploadFilesToSupabase(
   const uploadedUrls: string[] = [];
 
   for (const file of files) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const fileExt = file.name.split(".").pop();
     const filePath = `${userId}/${Date.now()}-${file.name}`;
-
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { data, error } = await superbase.storage
       .from("studio-uploads")
       .upload(filePath, file);
@@ -30,3 +31,4 @@ export async function uploadFilesToSupabase(
 
   return uploadedUrls;
 }
+// TODO: linting anpassen

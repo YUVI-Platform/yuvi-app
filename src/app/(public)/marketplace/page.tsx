@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useState } from "react";
-import { CourseLocationCard } from "@/components/UI/Cards/StudioCards";
+import { StudioCard } from "@/components/UI/Cards/StudioCards";
 import { MultiStateButton } from "@/components/UI/MultiStateButton";
 import { locations } from "@/testdata/locationData";
 
@@ -51,7 +51,7 @@ export default function MapWithSidebar() {
         style={{ maxHeight: "calc(100vh - 5rem)" }} // 5rem ~ pt-20
       >
         {locations.map((loc) => (
-          <CourseLocationCard
+          <StudioCard
             key={loc.id}
             name={loc.name}
             address={loc.address}

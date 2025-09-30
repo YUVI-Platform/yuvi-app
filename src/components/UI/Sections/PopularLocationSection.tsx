@@ -1,4 +1,4 @@
-import { CourseLocationCard } from "../Cards/StudioCards";
+import { StudioCard } from "../Cards/StudioCards";
 import { locations } from "@/testdata/locationData";
 
 export default function PopularLocationSection() {
@@ -14,7 +14,7 @@ export default function PopularLocationSection() {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 p-6 md:p-0">
         {locations.map((loc) => (
-          <CourseLocationCard
+          <StudioCard
             key={loc.id}
             name={loc.name}
             address={loc.address}

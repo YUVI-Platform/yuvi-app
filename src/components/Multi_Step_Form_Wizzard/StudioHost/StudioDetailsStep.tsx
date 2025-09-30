@@ -1,6 +1,5 @@
 "use client";
 import MultiStepFormDataTypes from "@/Types/MultiStepWizzardTypes";
-import { useEffect } from "react";
 
 const amenitieOptions = [
   "Wifi",
