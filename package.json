@@ -16,6 +16,7 @@
     "dayjs": "^1.11.13",
     "feather-icons-react": "^0.9.0",
     "framer-motion": "^12.23.12",
+    "lucide-react": "^0.544.0",
     "mapbox-gl": "^3.14.0",
     "next": "15.4.4",
     "react": "19.1.0",

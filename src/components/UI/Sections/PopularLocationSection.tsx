@@ -1,4 +1,4 @@
-import { CourseLocationCard } from "../Cards/LocationCards";
+import { CourseLocationCard } from "../Cards/StudioCards";
 import { locations } from "@/testdata/locationData";
 
 export default function PopularLocationSection() {

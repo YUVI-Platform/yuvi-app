@@ -5,13 +5,13 @@ import { WelcomeCustomerStep } from "./SharedStepps/WelcomeCustomerStep";
 import { CourseTypeStep } from "./MotionExpert/CourstTypeStep";
 import { CourseDetailsStep } from "./MotionExpert/CourseDetailsStep";
 import { CourseLocationStep } from "./MotionExpert/CourseLocationStep";
-import { CourseAvailabilityStep } from "./MotionExpert/CourseAvailabiltyStep";
+import StudioAvailabilityStep from "./StudioHost/StudioAvailabliltyStep";
 import { PhotoUploadStep } from "./SharedStepps/PhotoUploadStep";
 import { SummaryStep } from "./SharedStepps/PreviewStep";
 import { CoursePricingModellStep } from "./MotionExpert/CoursePricingModellStep";
 // import { CompletionStep } from "./SharedStepps/ComplitionStep";
 
-import { Check } from "feather-icons-react";
+import { Check, CheckCircle } from "feather-icons-react";
 
 import { AnimatePresence, motion } from "framer-motion";
 import StudioDetailsStep from "./StudioHost/StudioDetailsStep";
@@ -20,7 +20,9 @@ import { superbase } from "@/utils/supabase/superbaseClient";
 
 // IMPORT TYPES
 import MultiStepFormDataTypes from "@/Types/MultiStepWizzardTypes";
-import StudioAvailabilityStep from "./StudioHost/StudioAvailabliltyStep";
+
+import { uploadFilesToSupabase } from "@/utils/supabase/fileUpload";
+import { SessionSlotsStep } from "./MotionExpert/SessionSlotsStep";
 
 // import { CourseTypeProps } from "./MotionExpert/CourstTypeStep";
 
@@ -46,7 +48,7 @@ const getStepsForRole = (role: Role): Step[] => {
         {
           id: "availability",
           label: "Verfügbarkeit",
-          component: CourseAvailabilityStep,
+          component: SessionSlotsStep,
         },
         {
           id: "pricing",
@@ -86,6 +88,7 @@ const {
 
 // MAIN FORM COMPONENT
 export const MultiStepForm = ({ role }: { role: Role }) => {
+  const [showSuccess, setShowSuccess] = useState(false);
   const steps = getStepsForRole(role);
   const [formData, setFormData] = useState<MultiStepFormDataTypes>({});
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
@@ -108,33 +111,80 @@ export const MultiStepForm = ({ role }: { role: Role }) => {
     }
   };
 
+  const resetForm = () => {
+    setFormData({});
+    setCurrentStepIndex(0);
+  };
+
   const handleSubmit = async (
     formData: MultiStepFormDataTypes,
     userId: string
   ) => {
-    const { error } = await superbase.from("studios").insert([
-      {
-        user_id: userId,
-        studio_name: formData.studioName,
-        studio_address: formData.studioAddress,
-        contact_number: formData.contactNumber,
-        studio_size: formData.studioSize,
-        studio_description: formData.studioDescription,
-        amenities: formData.amenities,
-        availability: formData.studioAvailability, // stored as JSON
-      },
-    ]);
+    if (!userId) return;
 
-    if (error) {
-      console.error("Fehler beim Speichern des Studios:", error);
-      return false;
+    const previewImagesURI = await uploadFilesToSupabase(
+      formData.uploadedFiles || [],
+      userId
+    );
+
+    if (role === "studioHost") {
+      const { error } = await superbase.from("studios").insert([
+        {
+          user_id: userId,
+          studio_name: formData.studioName,
+          studio_address: formData.studioAddress,
+          contact_number: formData.contactNumber,
+          studio_size: formData.studioSize,
+          studio_description: formData.studioDescription,
+          amenities: formData.amenities,
+          availability: formData.studioAvailability,
+          image_previews: previewImagesURI,
+
+          ratings: { stars: 0, reviews: [] },
+        },
+      ]);
+
+      if (error) {
+        console.error("Fehler beim Speichern des Studios:", error);
+        return false;
+      }
+      console.log("Studio erfolgreich gespeichert!");
     }
 
+    if (role === "motionExpert") {
+      const { error } = await superbase.from("courses").insert([
+        {
+          user_id: userId,
+          // course_type: formData.courseType,
+          // course_title: formData.courseTitle,
+          // course_description: formData.courseDescription,
+          // course_location: formData.courseLocation,
+          // course_address: formData.courseAddress,
+          // course_date: formData.courseDate,
+          // course_time: formData.courseTime,
+          // pricing_model: formData.pricingModel,
+          // price: formData.price,
+          // currency: formData.currency,
+          image_previews: previewImagesURI,
+
+          ratings: { stars: 0, reviews: [] },
+        },
+      ]);
+
+      if (error) {
+        console.error("Fehler beim Speichern der Session:", error);
+        return false;
+      }
+      console.log("Session erfolgreich gespeichert!");
+    }
+    setShowSuccess(true);
+    resetForm();
     return true;
   };
 
   return (
-    <div className="grid grid-cols-[300px_800px] min-h-[800px] bg-white overflow-hidden rounded-4xl shadow-lg p-8">
+    <div className="relative grid grid-cols-[300px_800px] min-h-[800px] bg-white overflow-hidden rounded-4xl shadow-lg p-8">
+      <SuccessMessage success={showSuccess} />
       {/* STEP INDICATOR */}
       {/* TO DO: Implement possiblity to step by clicking on Step Indicator */}
       <div className="grid grid-cols-1 justify-items-start bg-indigo-400 rounded-2xl p-8 gap-4 shadow-md">
@@ -231,13 +281,32 @@ export const MultiStepForm = ({ role }: { role: Role }) => {
       </div>
     </div>
   );
+};
 
+const SuccessMessage = ({ success }: { success: boolean }) => {
+  const [isVisible, setIsVisible] = useState(success);
   return (
-    <div className="flex flex-col items-center justify-center h-full">
-      <h2 className="text-2xl font-bold text-gray-800">
-        Alle Schritte abgeschlossen!
-      </h2>
-      <p className="text-gray-600 mt-2">Vielen Dank für deine Teilnahme.</p>
+    <div
+      className={
+        "absolute flex-col items-center justify-center h-full bg-transparent w-full z-10 pointer-events-none backdrop-blur-sm" +
+        (isVisible ? " flex" : " hidden")
+      }
+    >
+      <div className="bg-white bg-opacity-90 backdrop-blur-md p-8 rounded-2xl shadow-lg flex flex-col items-center justify-center pointer-events-auto border border-slate-200">
+        <CheckCircle className="text-9xl text-emerald-400 mb-4 animate-bounce h-10 w-10" />
+        <h2 className="text-2xl font-bold text-indigo-400">
+          Alle Schritte abgeschlossen!
+        </h2>
+        <p className="text-slate-500 mt-2">Vielen Dank für deine Teilnahme.</p>
+        <div className="mt-4">
+          <button
+            className="bg-indigo-400 p-2 rounded-lg text-white hover:bg-fuchsia-300 cursor-pointer transition-all"
+            onClick={() => setIsVisible(false)}
+          >
+            Neues Formular Starten
+          </button>
+        </div>
+      </div>
     </div>
   );
 };

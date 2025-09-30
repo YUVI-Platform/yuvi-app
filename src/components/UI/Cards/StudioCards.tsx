@@ -1,10 +1,17 @@
-import { CourseLocationProps } from "@/Types/Location";
+import { StudioCardProps } from "@/Types/Studio";
+import {
+  ShowerHeadIcon,
+  ParkingSquareIcon,
+  ToiletIcon,
+  BlindsIcon,
+  SpotlightIcon,
+} from "lucide-react";
 import Image from "next/image";
 
 import { Wifi, Speaker } from "feather-icons-react";
 import { StarRating } from "./StarRating";
 
-export const CourseLocationCard = ({
+export const StudioCard = ({
   name,
   address,
   size,
@@ -13,7 +20,8 @@ export const CourseLocationCard = ({
   features,
   rating,
   imageUrl,
-}: CourseLocationProps) => {
+}: StudioCardProps) => {
+  console.log("Image URL:", imageUrl);
   return (
     <div className="flex flex-col overflow-hidden rounded-2xl h-fit shadow-lg w-full md:w-80 hover:scale-105 transition-transform duration-300 bg-white cursor-pointer">
       <div className="flex justify-center items-center bg-indigo-200 overflow-hidden aspect-video">
@@ -46,11 +54,26 @@ export const CourseLocationCard = ({
         <div className="flex items-center gap-4 text-slate-500">
           <span>{size}</span>
           <div className="flex items-center gap-4">
-            {features.includes("WiFi") && (
+            {features.includes("Wifi") && (
               <Wifi className="" size={16} strokeWidth={2} />
             )}
-            {features.includes("Sound") && (
+            {features.includes("Soundanlage") && (
               <Speaker className="" size={16} strokeWidth={2} />
+            )}
+            {features.includes("Dusche") && (
+              <ShowerHeadIcon className="text-slate-500" size={16} />
+            )}
+            {features.includes("Parkplatz") && (
+              <ParkingSquareIcon className="text-slate-500" size={16} />
+            )}
+            {features.includes("WC") && (
+              <ToiletIcon className="text-slate-500" size={16} />
+            )}
+            {features.includes("Umkleide") && (
+              <BlindsIcon className="text-slate-500" size={16} />
+            )}
+            {features.includes("Lichtanlage") && (
+              <SpotlightIcon className="text-slate-500" size={16} />
             )}
           </div>
         </div>

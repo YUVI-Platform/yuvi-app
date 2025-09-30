@@ -17,5 +17,13 @@ type MultiStepFormDataTypes = {
     endDate?: string;
     weeklySchedule?: { day: string; from: string; to: string }[];
   };
+  // Motion Expert Fields
+  sessionTypes?: string[];
+  sessionTitles?: string[];
+  sessionDescriptions?: string[];
+  sessionTags?: string[];
+  sessionDuration?: number;
+  sessionPrice?: number;
+  sessionPricing?: number;
 };
 export default MultiStepFormDataTypes;
