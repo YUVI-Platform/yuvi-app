@@ -1,23 +1,20 @@
+//TODO: Change Course to Session everywhere
+
 "use client";
 
 import React, { useState } from "react";
 import { User } from "feather-icons-react";
-import { DumbbellIcon, UserRoundIcon, UsersRoundIcon } from "lucide-react";
+import { HouseHeartIcon, MapPinIcon } from "lucide-react";
 
-export interface CourseTypeProps {
-  type: "Private Session" | "Group Session" | "Train With Me";
+export interface SessionLocationTypeProps {
+  type: "Self Host" | "Studio Host";
 }
 
-const CourseTypesMotionExpert = [
-  "Private Session",
-  "Group Session",
-  "Train With Me",
-];
+const SessionLocationType = ["Self Host", "Studio Host"];
 
-export const CourseTypeStep = () => {
-  const [selectedCourseType, setSelectedCourseType] = useState<string | null>(
-    null
-  );
+export const SessionLocationTypeStep = () => {
+  const [selectedSessionLocationType, setSelectedSessionLocationType] =
+    useState<string | null>(null);
   console.log(typeof (<User />));
   return (
     <div className="grid grid-cols-1 justify-items-center gap-8 w-full text-indigo-400">
@@ -26,25 +23,23 @@ export const CourseTypeStep = () => {
       </h2>
 
       <div className="grid grid-cols-3 gap-y-8 justify-items-center w-full">
-        {CourseTypesMotionExpert.map((courseType) => (
+        {SessionLocationType.map((courseType) => (
           <CourseTypeButton
             key={courseType + "motion-expert"}
-            selectedCourseType={selectedCourseType}
-            setSelectedCourseType={setSelectedCourseType}
+            selectedCourseType={selectedSessionLocationType}
+            setSelectedCourseType={setSelectedSessionLocationType}
             labelText={courseType}
             icon={
-              courseType === "Private Session" ? (
-                <UserRoundIcon size={"80"} strokeWidth={1.2} />
-              ) : courseType === "Group Session" ? (
-                <UsersRoundIcon size={"80"} strokeWidth={1.2} />
+              courseType === "Self Host" ? (
+                <MapPinIcon size={"80"} strokeWidth={1.2} />
               ) : (
-                <DumbbellIcon size={"80"} strokeWidth={1.2} />
+                <HouseHeartIcon size={"80"} strokeWidth={1.2} />
               )
             }
           />
         ))}
       </div>
-      <span>{selectedCourseType}</span>
+      <span>{selectedSessionLocationType}</span>
     </div>
   );
 };

@@ -102,6 +102,20 @@ const StudioDetailsStep = ({
         }
         className="mt-4 p-2 border border-gray-300 rounded-md w-64"
       />
+      <input
+        type="number"
+        placeholder="Maximale Teilnehmeranzahl"
+        step="1"
+        value={formData.studioCapacity || ""}
+        onChange={(e) =>
+          setFormData((prev) => ({
+            ...prev,
+            studioCapacity:
+              e.target.value === "" ? undefined : Number(e.target.value),
+          }))
+        }
+        className="mt-4 p-2 border border-gray-300 rounded-md w-64"
+      />
 
       <textarea
         placeholder="Studio Description"

@@ -10,6 +10,7 @@ type MultiStepFormDataTypes = {
   };
   contactNumber?: string;
   studioSize?: number;
+  studioCapacity?: number;
   studioDescription?: string;
   amenities?: string[];
   studioAvailability?: {

@@ -30,6 +30,11 @@ export const CourseLocationStep = () => {
         labels={["Liste", "Karte"]}
         onChange={() => setShowMap(!showMap)}
       /> */}
+      <span>FILTER optionen hinzufügen: Stadt, Ausstatung, Verfügbarkeit</span>
+      <span>Verfügbarkeitsfilter: Nach Datum</span>
+      <span>
+        Studio Inserart Overlay mit allen Infos routing auf Slot Booking System
+      </span>
       <div className="relative  w-fit h-fit max-h-[500px] rounded-2xl overflow-hidden">
         {/* {showMap && (
           <> */}

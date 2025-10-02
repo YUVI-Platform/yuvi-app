@@ -5,7 +5,9 @@ import { WelcomeCustomerStep } from "./SharedStepps/WelcomeCustomerStep";
 import { CourseTypeStep } from "./MotionExpert/CourstTypeStep";
 import { CourseDetailsStep } from "./MotionExpert/CourseDetailsStep";
 import { CourseLocationStep } from "./MotionExpert/CourseLocationStep";
+import { StudioPricingStep } from "./StudioHost/StudioPricingStep";
 import StudioAvailabilityStep from "./StudioHost/StudioAvailabliltyStep";
+import { StudioRulesStep } from "./StudioHost/StudioRulesStep";
 import { PhotoUploadStep } from "./SharedStepps/PhotoUploadStep";
 import { SummaryStep } from "./SharedStepps/PreviewStep";
 import { CoursePricingModellStep } from "./MotionExpert/CoursePricingModellStep";
@@ -23,6 +25,8 @@ import MultiStepFormDataTypes from "@/Types/MultiStepWizzardTypes";
 
 import { uploadFilesToSupabase } from "@/utils/supabase/fileUpload";
 import { SessionSlotsStep } from "./MotionExpert/SessionSlotsStep";
+import { SessionLocationTypeStep } from "./MotionExpert/SessionLocationType";
+import { SelfHostedLocationStep } from "./MotionExpert/SelfHostedLocationStep";
 
 // import { CourseTypeProps } from "./MotionExpert/CourstTypeStep";
 
@@ -43,13 +47,23 @@ const getStepsForRole = (role: Role): Step[] => {
       return [
         { id: "welcome", label: "Willkommen", component: WelcomeCustomerStep },
         { id: "courseType", label: "Kurstyp", component: CourseTypeStep },
-        { id: "details", label: "Kursdetails", component: CourseDetailsStep },
+        {
+          id: "locationType",
+          label: "Location Type",
+          component: SessionLocationTypeStep,
+        },
+        {
+          id: "selfHostedLocation",
+          label: "Self Hosted Location",
+          component: SelfHostedLocationStep,
+        },
         { id: "location", label: "Location", component: CourseLocationStep },
         {
           id: "availability",
           label: "Verfügbarkeit",
           component: SessionSlotsStep,
         },
+        { id: "details", label: "Kursdetails", component: CourseDetailsStep },
         {
           id: "pricing",
           label: "Preismodell",
@@ -71,7 +85,9 @@ const getStepsForRole = (role: Role): Step[] => {
           label: "Verfügbarkeit",
           component: StudioAvailabilityStep,
         },
+        { id: "pricing", label: "Preismodell", component: StudioPricingStep },
         { id: "pictures", label: "Fotos", component: PhotoUploadStep },
+        { id: "rules", label: "Hausregeln", component: StudioRulesStep },
 
         { id: "preview", label: "Vorschau", component: SummaryStep },
       ];

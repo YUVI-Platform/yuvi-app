@@ -1,4 +1,7 @@
 // import { use, useEffect, useState } from "react";
+import { number } from "framer-motion";
+import { EuroIcon } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 export interface CoursePricingModellStepProps {
@@ -40,49 +43,26 @@ export const CoursePricingModellStep = () => {
       <h2 className="text-2xl font-bold text-gray-800 text-center">
         Bitte wähle ein Preismodell.
       </h2>
-      <div>
+      <div className="flex  flex-col gap-4 justify-center items-center">
         <label htmlFor="">Modell</label>
-        <select
-          onChange={(e) => setPriceModel(e.target.value)}
-          className="w-full p-2 border border-gray-300 rounded-lg"
-        >
-          <option value="pricePerHour">pro Stunde</option>
-          <option value="pricePerSession">pro Session</option>
-          <option value="percentage">Prozentsatz</option>
-        </select>
-
-        <label htmlFor="">Preis</label>
-        <input
-          type="number"
-          className="w-full p-2 border border-gray-300 rounded-lg"
-          placeholder="z.B. 10.00"
-          onChange={(e) =>
-            setPrice(e.target.value === "" ? null : parseFloat(e.target.value))
-          }
-        />
-        {priceModel === "percentage" && (
-          <>
-            <label htmlFor="">Prozent Satz</label>
-            <input
-              type="number"
-              className="w-full p-2 border border-gray-300 rounded-lg"
-              placeholder="z.B. 10.00"
-              onChange={(e) => {
-                setPercentage(
-                  e.target.value === "" ? null : parseFloat(e.target.value)
-                );
-              }}
-            />
-
-            <div className="flex gap-4">
-              <span>preis nach Prozent Satz:</span>
-              <span>{priceByPercentage}</span>
-            </div>
-          </>
-        )}
-        <span>{percentage !== null ? percentage : 0} %,</span>
-        <span>{price !== null ? price : 0}€</span>
+        <div className="flex gap-4 w-fit">
+          <input
+            type="number"
+            className="flex w-full"
+            placeholder="Preis pro Session"
+          />
+          <EuroIcon className="" />
+        </div>
       </div>
+
+      <label htmlFor="AGB" className="mt-4">
+        Ich akzeptiere die{" "}
+        <Link href="/" className="text-blue-500 underline font-bold">
+          AGBs
+        </Link>{" "}
+        und die damit verbundene Stornierungs richtlinien
+        <input type="checkbox" id="AGB" className="mt-4" />
+      </label>
     </div>
   );
 };
