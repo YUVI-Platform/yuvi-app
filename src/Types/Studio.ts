@@ -34,6 +34,7 @@ export interface StudioProps {
   };
 
   user_id?: string;
+  price?: number;
 }
 
 type MultiStepFormDataTypes = {

@@ -1,19 +1,24 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Gelasio } from "next/font/google";
+import localFont from "next/font/local";
+import { Rubik } from "next/font/google";
 import "./globals.css";
 import ClientLayout from "./ClienentLayout";
 
-const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const rubik = Rubik({
   subsets: ["latin"],
+  weight: ["400", "700"],
+  variable: "--font-rubik",
 });
-const gelasio = Gelasio({ variable: "--font-gelasio", subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "YUVI ",
   description: "Dein Marktplatz für Bewegungskurse",
 };
+
+const PetitieCochon = localFont({
+  src: "./fonts/nf-le-petit-cochon.ttf",
+  variable: "--font-petite-cochon",
+});
 
 export default function RootLayout({
   children,
@@ -23,7 +28,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${gelasio.variable} antialiased`}
+        className={` ${rubik.variable} ${PetitieCochon.variable} antialiased`}
       >
         <ClientLayout>{children}</ClientLayout>
       </body>

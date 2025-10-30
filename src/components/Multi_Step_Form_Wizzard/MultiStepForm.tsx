@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { clsx } from "clsx";
 
 import { WelcomeCustomerStep } from "./SharedStepps/WelcomeCustomerStep";
-import { CourseTypeStep } from "./MotionExpert/CourstTypeStep";
+import { SessionTypeStep } from "./MotionExpert/SessionTypeStep";
 import { CourseDetailsStep } from "./MotionExpert/CourseDetailsStep";
 import { CourseLocationStep } from "./MotionExpert/CourseLocationStep";
 import { StudioPricingStep } from "./StudioHost/StudioPricingStep";
@@ -41,37 +41,57 @@ type Step = {
 };
 export type Role = "motionExpert" | "studioHost" | "athlete";
 
-const getStepsForRole = (role: Role): Step[] => {
+const getStepsForRole = (
+  role: Role,
+  formData: MultiStepFormDataTypes = {}
+): Step[] => {
   switch (role) {
-    case "motionExpert":
-      return [
+    case "motionExpert": {
+      const baseSteps: Step[] = [
         { id: "welcome", label: "Willkommen", component: WelcomeCustomerStep },
-        { id: "courseType", label: "Kurstyp", component: CourseTypeStep },
+        { id: "courseType", label: "Kurstyp", component: SessionTypeStep },
         {
           id: "locationType",
           label: "Location Type",
           component: SessionLocationTypeStep,
         },
-        {
-          id: "selfHostedLocation",
-          label: "Self Hosted Location",
-          component: SelfHostedLocationStep,
-        },
-        { id: "location", label: "Location", component: CourseLocationStep },
+      ];
+
+      const locationSteps: Step[] =
+        formData.locationType === "self-host"
+          ? [
+              {
+                id: "selfHostedLocation",
+                label: "Eigene Location",
+                component: SelfHostedLocationStep,
+              },
+            ]
+          : [
+              {
+                id: "location",
+                label: "Studio Location",
+                component: CourseLocationStep,
+              },
+            ];
+
+      const restSteps: Step[] = [
         {
           id: "availability",
           label: "Verfügbarkeit",
           component: SessionSlotsStep,
         },
-        { id: "details", label: "Kursdetails", component: CourseDetailsStep },
         {
-          id: "pricing",
-          label: "Preismodell",
-          component: CoursePricingModellStep,
+          id: "details",
+          label: "Kursdetails",
+          component: CourseDetailsStep,
         },
         { id: "pictures", label: "Fotos", component: PhotoUploadStep },
         { id: "preview", label: "Vorschau", component: SummaryStep },
       ];
+
+      return [...baseSteps, ...locationSteps, ...restSteps];
+    }
+
     case "studioHost":
       return [
         { id: "welcome", label: "Willkommen", component: WelcomeCustomerStep },
@@ -88,7 +108,6 @@ const getStepsForRole = (role: Role): Step[] => {
         { id: "pricing", label: "Preismodell", component: StudioPricingStep },
         { id: "pictures", label: "Fotos", component: PhotoUploadStep },
         { id: "rules", label: "Hausregeln", component: StudioRulesStep },
-
         { id: "preview", label: "Vorschau", component: SummaryStep },
       ];
     default:
@@ -105,8 +124,8 @@ const {
 // MAIN FORM COMPONENT
 export const MultiStepForm = ({ role }: { role: Role }) => {
   const [showSuccess, setShowSuccess] = useState(false);
-  const steps = getStepsForRole(role);
   const [formData, setFormData] = useState<MultiStepFormDataTypes>({});
+  const steps = getStepsForRole(role, formData);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   // const [allStepsCompleted, setAllStepsCompleted] = useState(false);
 
@@ -198,6 +217,13 @@ export const MultiStepForm = ({ role }: { role: Role }) => {
     return true;
   };
 
+  // Fallback bei gelöschtem Step:
+  useEffect(() => {
+    if (currentStepIndex >= steps.length) {
+      setCurrentStepIndex(steps.length - 1);
+    }
+  }, [steps.length, currentStepIndex]);
+
   return (
     <div className="relative grid grid-cols-[300px_800px] min-h-[800px] bg-white overflow-hidden rounded-4xl shadow-lg p-8">
       <SuccessMessage success={showSuccess} />
@@ -242,7 +268,7 @@ export const MultiStepForm = ({ role }: { role: Role }) => {
         <div className="w-full h-full p-8 justify-center items-center">
           <AnimatePresence mode="wait">
             <motion.div
-              key={currentStepIndex} // wichtig: damit die Animation beim Wechsel triggert
+              key={steps[currentStepIndex].id} // stabile, eindeutige ID!
               initial={{ opacity: 0, x: 50 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -50 }}

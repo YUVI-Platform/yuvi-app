@@ -26,5 +26,20 @@ type MultiStepFormDataTypes = {
   sessionDuration?: number;
   sessionPrice?: number;
   sessionPricing?: number;
+  locationType?: "studio-host" | "self-host";
+  selfHostedLocationDetails?: {
+    locationName?: string;
+    locationAddress?: {
+      street?: string;
+      city?: string;
+      zip?: string;
+      country?: string;
+    };
+    locationDescription?: string;
+    indoor: boolean;
+    outdoor: boolean;
+    maxCapacity?: number;
+    AGBAccepted?: boolean;
+  };
 };
 export default MultiStepFormDataTypes;

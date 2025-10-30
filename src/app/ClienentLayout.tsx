@@ -19,7 +19,7 @@ export default function ClientLayout({
         <>{children}</>
       ) : (
         <>
-          <div className="fixed flex w-full justify-center items-center md:my-10 z-100">
+          <div className="fixed flex w-full justify-center items-center md:py-4 z-100 bg-background">
             <Header />
           </div>
           {children}

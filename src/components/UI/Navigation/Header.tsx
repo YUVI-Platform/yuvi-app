@@ -1,165 +1,144 @@
 "use client";
+import clsx from "clsx";
+import {
+  ChevronDownIcon,
+  HeartHandshakeIcon,
+  Menu,
+  ShoppingCartIcon,
+  StoreIcon,
+  User2Icon,
+  X,
+} from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-
 import { useState } from "react";
 
-export const DesktopHeader = () => {
+const DesktopHeader = () => {
   return (
-    <header
-      className={`items-center justify-between  px-4 bg-white/90 backdrop-blur-lg gap-10 shadow-md w-fit rounded-full h-16 hidden md:flex`}
-    >
-      <Image src="/yuvi-favicon.avif" alt="Yuvi Logo" width={40} height={40} />
-
-      {/* <div className="flex items-center border-l border-gray-300 h-full pl-8">
-        <Search className="mr-4" />
-        <input
-          type="search"
-          name="search"
-          id="search"
-          placeholder="Search..."
-        />
-      </div> */}
-      <nav>
-        <ul className="flex space-x-8">
-          <li>
-            <Link
-              href="/"
-              className="text-indigo-400 font-medium hover:text-yuvi-rose hover:underline underline-offset-6 transition"
-            >
-              About us
-            </Link>
-          </li>
-          <li>
-            <Link
-              href="/marketplace"
-              className="text-indigo-400 font-medium hover:text-yuvi-rose hover:underline underline-offset-6 transition"
-            >
-              Marktplatz
-            </Link>
-          </li>
-          <li>
-            <Link
-              href="/membership"
-              className="text-indigo-400 font-medium hover:text-yuvi-rose hover:underline underline-offset-6 transition"
-            >
+    <header className="md:flex justify-between items-center text-xl font-semibold w-full max-w-[1920px] mt-1 px-20 pt-10 hidden">
+      <div className="text-yuvi-rose text-4xl font-fancy">YUVi</div>
+      <div className="flex gap-2 justify-center items-center">
+        <div className=" flex justify-center items-center  gap-4 bg-yuvi-white p-2.5 rounded-2xl text-sm">
+          <span className="text-yuvi-skyblue text-lg animate-pulse">
+            Book Now!
+          </span>
+          <input
+            type="text"
+            placeholder="Where are you?"
+            className="placeholder:font-light border-r border-slate-300 h-full "
+          />
+          <input
+            type="text"
+            placeholder="Moving Type?"
+            className="placeholder:font-light h-full"
+          />
+          <button className="flex items-center justify-center gap-2 px-4 py-2 bg-yuvi-rose text-white rounded-2xl cursor-pointer">
+            Studio
+            <ChevronDownIcon />
+          </button>
+        </div>
+        <nav className="flex h-fit w-fit bg-yuvi-white p-4 rounded-2xl">
+          <ul className="flex space-x-8">
+            <li className="flex gap-1">
+              <StoreIcon /> Marktplatz
+            </li>
+            <li className="flex gap-1">
+              <User2Icon />
               Membership
-            </Link>
-          </li>
-          <li>
-            <Link
-              href="https://yuvistudio.com/"
-              target="_blank"
-              className="text-indigo-400 font-medium hover:text-yuvi-rose hover:underline underline-offset-6 transition"
-            >
+            </li>
+            <li className="flex gap-1">
+              <ShoppingCartIcon />
               Shop
-            </Link>
-          </li>
-          <li>
-            <Link
-              href="/advert"
-              className="text-indigo-400 font-medium hover:text-yuvi-rose hover:underline underline-offset-6 transition"
-            >
+            </li>
+            <li className="flex gap-1">
+              <HeartHandshakeIcon />
               Community
-            </Link>
-          </li>
-        </ul>
-      </nav>
-      <Link
-        href="/login"
-        className="flex items-center bg-indigo-400 py-2 px-4 rounded-full cursor-pointer hover:bg-yuvi-rose transition-colors"
-      >
-        <span className="text-white font-medium">Login</span>
-        <div className="ml-2 rounded-full overflow-hidden">
+            </li>
+          </ul>
+        </nav>
+      </div>
+
+      <div className="flex justify-center items-center gap-2 border-2 border-yuvi-skyblue px-4 py-2 rounded-2xl font-bold text-yuvi-skyblue cursor-pointer hover:bg-yuvi-skyblue hover:text-yuvi-white transition">
+        Login
+        <div className="h-8 w-8 bg-yuvi-rose rounded-xl">
           <Image
-            src="/yuvi-favicon.avif"
-            alt="Yuvi Logo"
-            width={24}
-            height={24}
+            src="/character_placeholder_img.png"
+            width={32}
+            height={32}
+            alt="user icon"
           />
         </div>
-      </Link>
+      </div>
     </header>
   );
 };
 
-export const MobileHeader = () => {
+const MobileHeader = () => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <header className="absolute inset-0 w-full h-fit bg-white flex flex-col overflow-hidden md:hidden">
-      <div className="flex items-center justify-between px-4 py-2">
-        <Link
-          href="/login"
-          className="flex items-center bg-indigo-400 py-2 px-4 rounded-full hover:bg-yuvi-rose transition-colors"
-        >
-          <span className="text-white font-medium">Login</span>
-          <div className="ml-2 rounded-full overflow-hidden">
+    <header className="flex items-center w-full justify-between px-4 py-4 bg-background md:hidden z-50 relative">
+      {/* Logo / Brand */}
+      <Link href="/" className="text-2xl font-bold text-yuvi-rose font-fancy">
+        YUVi
+      </Link>
+
+      <div className="flex gap-4">
+        <div className="flex justify-center items-center gap-2 border-2 border-yuvi-skyblue px-2 py-1 rounded-2xl font-bold text-yuvi-skyblue cursor-pointer hover:bg-yuvi-skyblue hover:text-yuvi-white transition">
+          Login
+          <div className="h-6 w-6 bg-yuvi-rose rounded-lg">
             <Image
-              src="/yuvi-favicon.avif"
-              alt="Yuvi Logo"
-              width={24}
-              height={24}
+              src="/character_placeholder_img.png"
+              width={32}
+              height={32}
+              alt="user icon"
             />
           </div>
-        </Link>
-        <div className="flex flex-col gap-2" onClick={() => setIsOpen(!isOpen)}>
-          <div className="w-12 h-1 rounded-full bg-indigo-400" />
-          <div className="w-12 h-1 rounded-full bg-indigo-400" />
-          <div className="w-12 h-1 rounded-full bg-indigo-400" />
         </div>
+
+        {/* Hamburger Button */}
+        <button onClick={() => setIsOpen(!isOpen)} aria-label="Menu Toggle">
+          {isOpen ? <X size={28} /> : <Menu size={28} />}
+        </button>
       </div>
+
+      {/* Mobile Menu */}
       <nav
-        className={`md:hidden w-full max-w-screen ${isOpen ? "" : "hidden"}`}
+        className={clsx(
+          "absolute top-full left-0 w-full h-screen bg-background flex flex-col items-start gap-6 px-6 py-8 transition-all duration-300 ease-in-out z-40",
+          isOpen
+            ? "translate-y-0 opacity-100"
+            : "-translate-y-4 opacity-0 pointer-events-none"
+        )}
       >
-        <ul className="flex flex-col justify-center items-center space-y-8 h-screen z-50 px-8">
-          <li>
-            <Link
-              href="/"
-              className="text-5xl text-indigo-400 font-medium hover:text-yuvi-rose hover:underline underline-offset-6 transition"
-              onClick={() => setIsOpen(false)}
-            >
-              About us
-            </Link>
-          </li>
-          <li>
-            <Link
-              href="/marketplace"
-              className="text-5xl text-indigo-400 font-medium hover:text-yuvi-rose hover:underline underline-offset-6 transition"
-              onClick={() => setIsOpen(false)}
-            >
-              Marktplatz
-            </Link>
-          </li>
-          <li>
-            <Link
-              href="/membership"
-              className="text-5xl text-indigo-400 font-medium hover:text-yuvi-rose hover:underline underline-offset-6 transition"
-              onClick={() => setIsOpen(false)}
-            >
-              Membership
-            </Link>
-          </li>
-          <li>
-            <Link
-              href="https://yuvistudio.com/"
-              target="_blank"
-              className="text-5xl text-indigo-400 font-medium hover:text-yuvi-rose hover:underline underline-offset-6 transition"
-              onClick={() => setIsOpen(false)}
-            >
-              Shop
-            </Link>
-          </li>
-          <li>
-            <Link
-              href="/community"
-              className="text-5xl text-indigo-400 font-medium hover:text-yuvi-rose hover:underline underline-offset-6 transition"
-              onClick={() => setIsOpen(false)}
-            >
-              Community
-            </Link>
-          </li>
-        </ul>
+        <Link
+          href="/sessions"
+          onClick={() => setIsOpen(false)}
+          className="text-xl font-semibold"
+        >
+          Sessions
+        </Link>
+        <Link
+          href="/studios"
+          onClick={() => setIsOpen(false)}
+          className="text-xl font-semibold"
+        >
+          Studios
+        </Link>
+        <Link
+          href="/about"
+          onClick={() => setIsOpen(false)}
+          className="text-xl font-semibold"
+        >
+          About
+        </Link>
+        <Link
+          href="/contact"
+          onClick={() => setIsOpen(false)}
+          className="text-xl font-semibold"
+        >
+          Contact
+        </Link>
       </nav>
     </header>
   );
@@ -168,8 +147,8 @@ export const MobileHeader = () => {
 export default function Header() {
   return (
     <>
-      <DesktopHeader />
       <MobileHeader />
+      <DesktopHeader />
     </>
   );
 }

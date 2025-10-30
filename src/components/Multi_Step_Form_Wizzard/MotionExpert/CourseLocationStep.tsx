@@ -39,40 +39,41 @@ export const CourseLocationStep = () => {
         {/* {showMap && (
           <> */}
         <div className="relative grid grid-cols-2 justify-items-center max-h-[500px] overflow-y-scroll gap-8 overflow-box-scroll-hidden p-10">
-          {studios?.map((studio) => (
-            <div
-              key={studio.name}
-              className={
-                studio === selectedLocation
-                  ? "border-3 border-yuvi-rose bg-yuvi-rose rounded-2xl overflow-hidden"
-                  : ""
-              }
-              onClick={() => setSelectedLocation(studio)}
-            >
-              <StudioCard
-                key={`${studio.user_id ?? "unknown"}-${studio.studio_name}-${
-                  studio.studio_address?.street ?? "noaddress"
-                }`}
-                name={studio.studio_name || "Loading..."}
-                address={`${studio.studio_address?.street ?? "Loading..."}
-                         `}
-                size={studio.studio_size ? `${studio.studio_size} m²` : "N/A"}
-                availableFrom={
-                  dayjs(studio.availability?.startDate).format("MMMYY") || "N/A"
+          {studios?.map((studio, index) => {
+            const key = `${studio.user_id}-${studio.studio_name}-${index}`;
+
+            return (
+              <div
+                key={key}
+                className={
+                  studio === selectedLocation
+                    ? "border-3 border-yuvi-rose bg-yuvi-rose rounded-2xl overflow-hidden"
+                    : ""
                 }
-                availableTo={
-                  dayjs(studio.availability?.endDate).format("MMMYY") || "N/A"
-                }
-                features={studio.amenities || []}
-                rating={studio.ratings?.stars || 0}
-                imageUrl={
-                  studio.image_previews
-                    ? studio.image_previews[0]
-                    : "/placeholder.jpg"
-                }
-              />
-            </div>
-          ))}
+                onClick={() => setSelectedLocation(studio)}
+              >
+                <StudioCard
+                  name={studio.studio_name || "Loading..."}
+                  address={`${studio.studio_address?.street ?? "Loading..."}`}
+                  size={studio.studio_size ? `${studio.studio_size} m²` : "N/A"}
+                  availableFrom={
+                    dayjs(studio.availability?.startDate).format("MMMYY") ||
+                    "N/A"
+                  }
+                  availableTo={
+                    dayjs(studio.availability?.endDate).format("MMMYY") || "N/A"
+                  }
+                  features={studio.amenities || []}
+                  rating={studio.ratings?.stars || 0}
+                  imageUrl={
+                    studio.image_previews
+                      ? studio.image_previews[0]
+                      : "/placeholder.jpg"
+                  }
+                />
+              </div>
+            );
+          })}
         </div>
         <div className="pointer-events-none absolute bottom-0 left-0 w-full h-20 bg-gradient-to-t from-white to-transparent z-10" />
         {/* </>

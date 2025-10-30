@@ -2,27 +2,43 @@
 
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { User } from "feather-icons-react";
 import { HouseHeartIcon, MapPinIcon } from "lucide-react";
+import MultiStepFormDataTypes from "@/Types/MultiStepWizzardTypes";
 
 export interface SessionLocationTypeProps {
-  type: "Self Host" | "Studio Host";
+  type: "self-host" | "studio-host";
 }
 
-const SessionLocationType = ["Self Host", "Studio Host"];
+const SessionLocationType = ["self-host", "studio-host"];
 
-export const SessionLocationTypeStep = () => {
+export const SessionLocationTypeStep = ({
+  formData,
+  setFormData,
+}: {
+  formData: MultiStepFormDataTypes;
+  setFormData: React.Dispatch<React.SetStateAction<MultiStepFormDataTypes>>;
+}) => {
   const [selectedSessionLocationType, setSelectedSessionLocationType] =
     useState<string | null>(null);
+
+  useEffect(() => {
+    setFormData({
+      ...formData,
+      locationType: selectedSessionLocationType as "self-host" | "studio-host",
+    });
+  }, [selectedSessionLocationType]);
+
   console.log(typeof (<User />));
+
   return (
     <div className="grid grid-cols-1 justify-items-center gap-8 w-full text-indigo-400">
       <h2 className="text-2xl font-bold">
         Welchen Motion Class Type möchtest du Launchen?
       </h2>
 
-      <div className="grid grid-cols-3 gap-y-8 justify-items-center w-full">
+      <div className="grid grid-cols-2 gap-8 justify-items-center w-fit">
         {SessionLocationType.map((courseType) => (
           <CourseTypeButton
             key={courseType + "motion-expert"}
@@ -30,7 +46,7 @@ export const SessionLocationTypeStep = () => {
             setSelectedCourseType={setSelectedSessionLocationType}
             labelText={courseType}
             icon={
-              courseType === "Self Host" ? (
+              courseType === "self-host" ? (
                 <MapPinIcon size={"80"} strokeWidth={1.2} />
               ) : (
                 <HouseHeartIcon size={"80"} strokeWidth={1.2} />

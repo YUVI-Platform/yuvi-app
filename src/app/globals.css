@@ -1,28 +1,37 @@
 @import "tailwindcss";
 
-.gelasio {
-  font-family: var(--font-gelasio), serif;
+.rubik {
+  font-family: var(--font-rubik), serif;
+}
+
+.petite-cochon {
+  font-family: "PetiteCochon", serif;
 }
 
 :root {
-  --background: #ffffff;
+  --background: #f5f8fb;
   --foreground: #7c86ff;
   --yuvi-light-blue: #cce3ff;
   --yuvi-blue: #7c86ff;
   --yuvi-rose: #ffbbe2;
   --yuvi-white: #ffffff;
+  --yuvi-black: #000105;
+  --yuvi-skyblue: #3bb7fc;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-rubik);
   --color-yuvi-light-blue: var(--yuvi-light-blue);
   --color-yuvi-rose: var(--yuvi-rose);
   --color-yuvi-blue: var(--yuvi-blue);
   --color-yuvi-white: var(--yuvi-white);
+  --color-yuvi-skyblue: var(--yuvi-skyblue);
+  --text-primary: var(--yuvi-black);
+  --font-fancy: var(--font-petite-cochon);
 }
+
 /* 
 @media (prefers-color-scheme: dark) {
   :root {
@@ -33,8 +42,8 @@
 
 body {
   background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
 }
 
 .overflow-box-scroll-hidden::-webkit-scrollbar {
