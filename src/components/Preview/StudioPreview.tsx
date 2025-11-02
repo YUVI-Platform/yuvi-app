@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 
 import { StudioProps } from "@/Types/Studio";
 import { Star } from "feather-icons-react";
-import { StarRating } from "../UI/Cards/StarRating";
+import { StarRating } from "../ui/Cards/StarRating";
 
 // export interface StudioProps {
 //   name: string;

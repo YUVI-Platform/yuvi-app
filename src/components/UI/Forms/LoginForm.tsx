@@ -1,72 +1,48 @@
 "use client";
 import Link from "next/link";
 import Image from "next/image";
-import { redirect } from "next/navigation";
-import { superbase } from "@/utils/supabase/superbaseClient";
-import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useState } from "react";
+import { SubmitButton } from "@/components/ui/SubmitButton";
+// import { Spinner } from "@/components/ui/Spinner";
 
 export const LoginForm = () => {
+  const sp = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
-  const handleLogin = async () => {
-    const { error, data } = await superbase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: process.env.NEXT_PUBLIC_SITE_URL + "/userdashboard",
-      },
-    });
-
-    if (error) {
-      console.error("Login error:", error);
-    } else {
-      return redirect(data.url);
-    }
-  };
-
-  const handleEmailLogin = async () => {
-    const { error } = await superbase.auth.signInWithPassword({
-      email: email,
-      password: password,
-    });
-
-    if (error) {
-      console.error("Login error:", error);
-    } else {
-      return redirect("/dashboard");
-    }
-  };
-
-  useEffect(() => {
-    console.log(email);
-    console.log(password);
-  }, [email, password]);
+  const error = sp.get("error") || "";
+  const redirectTo = sp.get("redirectTo") || "/admin/invites";
 
   return (
     <div className="flex flex-col justify-center items-center gap-12 pt-6 pb-12 px-8 h-fit w-[500px] rounded-2xl shadow-xl bg-white">
       <div className="flex flex-col gap-2 justify-center items-center">
-        <Image
-          src="/yuvi-favicon.avif"
-          alt="Logo"
-          width={48}
-          height={48}
-          className="rounded-full"
-        />
-        <h1 className="text-indigo-400 text-3xl font-bold">
+        <span className="font-fancy text-5xl text-yuvi-rose">YUVi</span>
+        <h1 className="text-black text-3xl font-bold">
           Let&#39;s get you movin
         </h1>
-        <p className="text-indigo-300">Bitte melde dich an, um fortzufahren</p>
+        <p className="text-slate-500">Bitte melde dich an, um fortzufahren</p>
+        {error && (
+          <p className="mt-2 text-sm text-red-600 text-center">{error}</p>
+        )}
       </div>
 
-      <div className="flex flex-col gap-4 w-full">
+      {/* E-Mail / Passwort → POST an Server-Route */}
+      <form
+        action="/auth/signin/password"
+        method="post"
+        className="flex flex-col gap-4 w-full"
+      >
+        <input type="hidden" name="redirectTo" value={redirectTo} />
         <input
-          type="text"
-          placeholder="Email oder Benutzername"
+          name="email"
+          type="email"
+          placeholder="Email"
           onChange={(e) => setEmail(e.target.value)}
           className="border border-gray-300 rounded-2xl p-3 w-full text-center text-indigo-400 placeholder:text-gray-300 focus:outline-indigo-400"
           required
         />
         <input
+          name="password"
           type="password"
           placeholder="Passwort"
           onChange={(e) => setPassword(e.target.value)}
@@ -74,43 +50,50 @@ export const LoginForm = () => {
           required
         />
 
-        <button
-          className={`border rounded-2xl p-3 w-full text-center text-white bg-indigo-400 hover:bg-indigo-500 font-bold cursor-pointer ${
-            email && password ? "" : "opacity-50 cursor-not-allowed"
-          }`}
-          disabled={!email || !password}
-          onClick={handleEmailLogin}
+        <SubmitButton
+          className="w-full rounded-2xl bg-indigo-400 px-4 py-3 font-bold text-white hover:bg-indigo-500"
+          pendingText="Anmeldung läuft…"
         >
           Anmelden
-        </button>
-        <button className="text-indigo-400 underline">
+        </SubmitButton>
+        <button
+          type="button"
+          className="text-yuvi-rose underline"
+          onClick={() =>
+            alert("Schreib mir, ob ich einen Reset-Flow anlegen soll.")
+          }
+        >
           Passwort vergessen?
         </button>
-      </div>
+      </form>
+
       <div className="flex w-full items-center text-gray-400 gap-2">
         <hr className="text-gray-300 w-full" />
         <span>or</span>
         <hr className="text-gray-300 w-full" />
       </div>
-      <button
-        onClick={handleLogin}
-        className="flex justify-center items-center gap-2 m-t-96 text-xl bg-blue-600 rounded-2xl px-4 py-2  hover:bg-blue-300 text-white cursor-pointer w-full"
+
+      {/* Google OAuth → GET an /auth/oauth */}
+      {/* <a
+        href={`/auth/oauth?provider=google&redirectTo=${encodeURIComponent(
+          redirectTo
+        )}`}
+        className="flex justify-center items-center gap-2 text-xl bg-blue-600 rounded-2xl px-4 py-2 hover:bg-blue-500 text-white w-full"
       >
-        <div>
-          <Image
-            src="/Google__G__logo.svg.webp"
-            alt="Google Logo"
-            width={24}
-            height={24}
-          />
-        </div>
+        <Image
+          src="/Google__G__logo.svg.webp"
+          alt="Google Logo"
+          width={24}
+          height={24}
+        />
         Login mit Google
-      </button>
+      </a> */}
+
       <div className="flex flex-col justify-center items-center gap-2 text-gray-400">
-        <span>Du bist noch nicht Registriert?</span>
+        <span>Du bist noch nicht registriert?</span>
         <Link
           href={
-            "mailto:info@yuvi.com?subject=Account Anfrage&body=Hi Yuvi ich [Dein Name] möchte gerne einen Account bei euch anlegen!"
+            "mailto:info@yuvi.com?subject=Account Anfrage&body=Hi Yuvi, ich [Dein Name] möchte gerne einen Account anlegen!"
           }
           className="underline text-indigo-400"
         >

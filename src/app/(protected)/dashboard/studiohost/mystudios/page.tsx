@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { StudioCard } from "@/components/UI/Cards/StudioCards";
+import { StudioCard } from "@/components/ui/Cards/StudioCards";
 import { fetchAllStudios } from "@/utils/supabase/getStudios";
 import { StudioProps } from "@/Types/Studio";
 import dayjs from "dayjs";

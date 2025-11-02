@@ -1,4 +1,4 @@
-import { StudioCard } from "../../UI/Cards/StudioCards";
+import { StudioCard } from "../../ui/Cards/StudioCards";
 import { StudioProps } from "@/Types/Studio";
 
 export type CourseLocationType = "custom" | "fromList";

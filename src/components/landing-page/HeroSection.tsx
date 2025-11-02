@@ -1,11 +1,15 @@
+"use client";
+import { useState } from "react";
 import { motion } from "framer-motion";
+import { ArrowRightIcon, ChevronDownIcon } from "lucide-react";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import Image from "next/image";
 
 export default function HeroSection() {
   return (
     <main className="relative mt-40 md:mt-80 flex flex-col w-full px-4 md:p-20 md:max-w-[1920px]">
       <div className="flex flex-col md:flex-row md:gap-40">
-        <div className="flex flex-col w-fit gap-8">
+        <div className="flex flex-col w-fit gap-6">
           <h1 className="font-sans text-8xl md:text-9xl font-bold md:max-w-4xl">
             WE GET YOU{" "}
             <motion.span
@@ -20,13 +24,14 @@ export default function HeroSection() {
           <p className="text-3xl md:text-4xl font-semibold max-w-4xl">
             We turn unused Spaces, <br /> into your playground.
           </p>
+          <QuickBookingBar />
         </div>
         <Image
           src="/hero-section-runner-dummy.webp"
           width={1000}
           height={1080}
           alt="Hero Section Image"
-          className="z-10 absolute bottom-40 -right-20 md:top-0 md:right-0"
+          className="absolute bottom-40 -right-20 md:top-0 md:right-0"
         />
         <svg
           width="1759"
@@ -61,3 +66,90 @@ export default function HeroSection() {
     </main>
   );
 }
+
+const citySuggestions = ["München", "Innsbruck"];
+const typeSuggestions = [
+  "HIIT",
+  "YOGA",
+  "CROSSFIT",
+  "GYM",
+  "PILATES",
+  "Running",
+];
+
+export const QuickBookingBar = () => {
+  const [mode, setMode] = useState<"Studio" | "Session">("Studio");
+
+  return (
+    <div className="flex w-fit justify-center items-center mt-6 gap-4 bg-yuvi-white p-2.5 rounded-2xl text-sm shadow-md z-10">
+      <span className="text-yuvi-skyblue text-lg animate-pulse">Book Now!</span>
+
+      {/* City Input */}
+      <input
+        type="text"
+        list="city-options"
+        placeholder="Where are you?"
+        className="placeholder:font-light border-r border-slate-300 h-full px-2 py-1 focus:outline-none"
+      />
+      <datalist id="city-options">
+        {citySuggestions.map((city) => (
+          <option key={city} value={city} />
+        ))}
+      </datalist>
+
+      {/* Movement Type Input */}
+      <input
+        type="text"
+        list="type-options"
+        placeholder="Moving Type?"
+        className="placeholder:font-light h-full px-2 py-1 focus:outline-none"
+      />
+      <datalist id="type-options">
+        {typeSuggestions.map((type) => (
+          <option key={type} value={type} />
+        ))}
+      </datalist>
+
+      {/* Switch Button */}
+      <ModeToggle mode={mode} onChange={setMode} />
+      <button
+        onClick={() => setMode(mode === "Studio" ? "Session" : "Studio")}
+        className="flex items-center justify-center gap-2 px-4 py-2 bg-yuvi-rose text-white rounded-2xl cursor-pointer transition hover:bg-yuvi-skyblue"
+      >
+        <ArrowRightIcon />
+      </button>
+    </div>
+  );
+};
+
+export const ModeToggle = ({
+  mode,
+  onChange,
+}: {
+  mode: "Studio" | "Session";
+  onChange: (value: "Studio" | "Session") => void;
+}) => {
+  return (
+    <ToggleGroup
+      type="single"
+      value={mode}
+      onValueChange={(val) => {
+        if (val) onChange(val as "Studio" | "Session");
+      }}
+      className="border border-yuvi-rose rounded-2xl p-1 bg-white "
+    >
+      <ToggleGroupItem
+        value="Studio"
+        className="px-4 py-2 text-sm font-semibold data-[state=on]:bg-yuvi-rose data-[state=on]:text-white rounded-xl transition-all duration-300 ease-in-out cursor-pointer"
+      >
+        Studio
+      </ToggleGroupItem>
+      <ToggleGroupItem
+        value="Session"
+        className="px-4 py-2 text-sm font-semibold data-[state=on]:bg-yuvi-rose data-[state=on]:text-white rounded-xl transition-all duration-300 ease-in-out cursor-pointer"
+      >
+        Session
+      </ToggleGroupItem>
+    </ToggleGroup>
+  );
+};

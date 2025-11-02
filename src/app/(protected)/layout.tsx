@@ -1,4 +1,4 @@
-import SideNav from "@/components/UI/Navigation/SideNav";
+import SideNav from "@/components/ui/Navigation/SideNav";
 // import { superbase } from "@/utils/supabase/superbaseClient";
 // import { redirect } from "next/navigation";
 

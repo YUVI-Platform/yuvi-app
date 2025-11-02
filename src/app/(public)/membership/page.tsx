@@ -1,6 +1,6 @@
 "use client";
 import { Check, X } from "feather-icons-react";
-import { MultiStateButton } from "@/components/UI/MultiStateButton";
+import { MultiStateButton } from "@/components/ui/MultiStateButton";
 // import { useState } from "react";
 import Link from "next/link";
 

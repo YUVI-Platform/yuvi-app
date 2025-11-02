@@ -3,8 +3,8 @@
 import dynamic from "next/dynamic";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useState } from "react";
-import { StudioCard } from "@/components/UI/Cards/StudioCards";
-import { MultiStateButton } from "@/components/UI/MultiStateButton";
+import { StudioCard } from "@/components/ui/Cards/StudioCards";
+import { MultiStateButton } from "@/components/ui/MultiStateButton";
 import { locations } from "@/testdata/locationData";
 
 // Map ohne SSR laden (wichtig für Next.js)
