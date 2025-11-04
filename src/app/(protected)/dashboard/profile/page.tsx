@@ -1,4 +1,4 @@
-// app/profile/page.tsx
+// app/(protected)/dashboard/profile/page.tsx
 "use client";
 
 import Image from "next/image";
@@ -9,6 +9,21 @@ import QRCode from "qrcode";
 import { supabaseBrowser } from "@/lib/supabaseBrowser";
 
 type Role = "athlete" | "motionExpert" | "studioHost" | "admin";
+type SupabaseRoleRow = { role: Role };
+
+type UserMetadata = {
+  userName?: string;
+  avatar_url?: string;
+  // weitere Keys erlauben, aber typ-sicher:
+  [key: string]: unknown;
+};
+
+function isRole(v: unknown): v is Role {
+  return (
+    typeof v === "string" &&
+    ["athlete", "motionExpert", "studioHost", "admin"].includes(v)
+  );
+}
 
 export default function ProfilePage() {
   return (
@@ -52,7 +67,7 @@ function MemberCard() {
       setUid(currentUid);
       setEmail(me.user.email ?? "");
 
-      // Profil & Rollen parallel holen (RLS: "profiles self select" muss aktiv sein)
+      // Profil & Rollen parallel holen
       const [
         { data: prof, error: profErr },
         { data: roleRows, error: rolesErr },
@@ -68,20 +83,19 @@ function MemberCard() {
       if (profErr) console.warn("profiles select error:", profErr);
       if (rolesErr) console.warn("roles select error:", rolesErr);
 
+      const meta = (me.user.user_metadata ?? {}) as UserMetadata;
+
       const fallback =
-        prof?.name ??
-        (me.user.user_metadata as any)?.userName ??
-        me.user.email?.split("@")[0] ??
-        "";
+        prof?.name ?? meta.userName ?? me.user.email?.split("@")[0] ?? "";
 
       setName(prof?.name ?? fallback);
       setAlias(prof?.alias ?? fallback);
-      setAvatarUrl(
-        prof?.avatar_url ??
-          (me.user.user_metadata as any)?.avatar_url ??
-          undefined
-      );
-      setRoles((roleRows?.map((r: any) => r.role) as Role[]) ?? []);
+      setAvatarUrl(prof?.avatar_url ?? meta.avatar_url ?? undefined);
+
+      const roleList = Array.isArray(roleRows)
+        ? roleRows.map((r) => r?.role).filter(isRole) // typ-predikat -> Role[]
+        : [];
+      setRoles(roleList);
 
       setLoading(false);
     })();

@@ -40,10 +40,10 @@ export async function createInvite(input: InviteInput) {
 
   if (error) throw new Error(error.message);
 
-  const h = headers();
-  const origin =
-    process.env.NEXT_PUBLIC_APP_URL ??
-    `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}`;
+  const h = await headers();
+  const proto = h.get("x-forwarded-proto") ?? "https";
+  const host = h.get("host") ?? "";
+  const origin = process.env.NEXT_PUBLIC_APP_URL ?? `${proto}://${host}`;
   const url = `${origin}/register?code=${code}`;
 
   revalidatePath("/admin/invites");

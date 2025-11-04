@@ -1,66 +1,61 @@
-// lib/supabaseServer.ts
+// src/lib/supabaseServer.ts
 import { cookies, headers } from "next/headers";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-/** Nur LESEN (Server Components / Pages) */
+/**
+ * READ-Client (Server Components / Pages)
+ * - nutzt getAll/setAll (SSR-API)
+ * - setAll ist in RSC ein No-Op (catch)
+ */
 export async function supabaseServerRead() {
-  const store = await cookies(); // <-- WICHTIG: await
+  const cookieStore = await cookies();
+
   return createServerClient(url, anon, {
     cookies: {
-      // Neue API
       getAll() {
-        return store.getAll();
+        return cookieStore.getAll();
       },
-      setAll() {
-        /* no-op in RSC */
-      },
-      // Legacy API (wird von manchen @supabase/ssr-Versionen noch genutzt)
-      get(name: string) {
-        return store.get(name)?.value;
-      },
-      set(_name: string, _value: string, _options?: CookieOptions) {
-        /* no-op in RSC */
-      },
-      remove(_name: string, _options?: CookieOptions) {
-        /* no-op in RSC */
+      setAll(cookiesToSet) {
+        // In RSC sind Cookie-Schreibzugriffe nicht erlaubt -> still zulassen
+        try {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            cookieStore.set(name, value, options as CookieOptions);
+          });
+        } catch {
+          /* no-op in RSC */
+        }
       },
     },
   });
 }
 
-/** LESEN + SCHREIBEN (nur in Server Actions / Route Handlern) */
+/**
+ * WRITE-Client (Server Actions / Route Handler)
+ * - hier darf setAll schreiben
+ */
 export async function supabaseServerAction() {
-  const store = await cookies(); // <-- WICHTIG: await
+  const cookieStore = await cookies();
+
   return createServerClient(url, anon, {
     cookies: {
-      // Neue API
       getAll() {
-        return store.getAll();
+        return cookieStore.getAll();
       },
-      setAll(
-        cookiesToSet: { name: string; value: string; options: CookieOptions }[]
-      ) {
+      setAll(cookiesToSet) {
         cookiesToSet.forEach(({ name, value, options }) => {
-          store.set({ name, value, ...options });
+          cookieStore.set(name, value, options as CookieOptions);
         });
       },
-      // Legacy API
-      get(name: string) {
-        return store.get(name)?.value;
-      },
-      set(name: string, value: string, options?: CookieOptions) {
-        store.set({ name, value, ...(options || {}) });
-      },
-      remove(name: string, options?: CookieOptions) {
-        store.set({ name, value: "", ...(options || {}) });
-      },
     },
   });
 }
 
+/**
+ * Absolute URL ermitteln (für Redirects etc.)
+ */
 export async function absoluteUrl(path = "/") {
   const h = await headers();
   const base = (
@@ -68,5 +63,6 @@ export async function absoluteUrl(path = "/") {
     process.env.NEXT_PUBLIC_APP_URL ||
     `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}`
   ).replace(/\/+$/, "");
+
   return `${base}${path.startsWith("/") ? path : `/${path}`}`;
 }

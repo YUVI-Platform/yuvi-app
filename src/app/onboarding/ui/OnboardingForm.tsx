@@ -1,17 +1,33 @@
+// app/onboarding/ui/OnboardingForm.tsx
 "use client";
 
-import { useFormState, useFormStatus } from "react-dom";
-import { saveProfile, type OnboardingState } from "../actions";
+import { useFormStatus } from "react-dom";
+import { useActionState } from "react";
+import { saveAndFinishAction, type OnboardingState } from "../actions";
 import { useState } from "react";
 import AvatarUpload from "./AvatarUpload";
 
 type Props = {
   defaultValues: { name: string; alias: string; avatar_url?: string };
+  uid: string;
+  children?: React.ReactNode;
 };
 
-export default function OnboardingForm({ defaultValues }: Props) {
-  const [state, formAction] = useFormState<OnboardingState, FormData>(
-    saveProfile,
+export default function OnboardingForm({
+  defaultValues,
+  uid,
+  children,
+}: Props) {
+  const wrappedSaveAndFinish = async (
+    _state: OnboardingState,
+    formData: FormData
+  ): Promise<OnboardingState> => {
+    await saveAndFinishAction(formData);
+    return { ok: true, error: "" };
+  };
+
+  const [state, formAction] = useActionState<OnboardingState, FormData>(
+    wrappedSaveAndFinish,
     { ok: false, error: "" }
   );
   const [avatarUrl, setAvatarUrl] = useState<string | undefined>(
@@ -19,8 +35,10 @@ export default function OnboardingForm({ defaultValues }: Props) {
   );
 
   return (
-    <form action={formAction} className="relative space-y-4">
+    <form action={formAction} className="relative space-y-4 p-20">
       <PendingOverlay text="Account wird gespeichert…" />
+
+      <input type="hidden" name="uid" value={uid} />
 
       <div className="space-y-1">
         <label className="text-sm font-medium">Anzeigename</label>
@@ -53,6 +71,9 @@ export default function OnboardingForm({ defaultValues }: Props) {
         {/* Hidden field: wird in Server Action gespeichert */}
         <input type="hidden" name="avatar_url" value={avatarUrl || ""} />
       </div>
+
+      {/* Rollenspezifische Felder */}
+      {children}
 
       {state?.error ? (
         <p className="text-sm text-red-600">{state.error}</p>
