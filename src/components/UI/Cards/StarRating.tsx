@@ -1,66 +1,47 @@
-// src/components/ui/Cards/StarRating.tsx
 "use client";
-
-import clsx from "clsx";
 import * as React from "react";
+import { Star } from "feather-icons-react";
+import { cn } from "@/lib/utils";
 
-export type StarRatingProps = {
-  /** Du kannst wahlweise `value` oder `rating` übergeben */
-  value?: number;
-  rating?: number;
+type Props = {
+  value?: number; // bevorzugt
+  rating?: number; // legacy alias
   outOf?: number;
-  onChange?: (v: number) => void;
   className?: string;
-  sizePx?: number;
 };
 
-export function StarRating({
+const StarRating: React.FC<Props> = ({
   value,
   rating,
   outOf = 5,
-  onChange,
   className,
-  sizePx = 16,
-}: StarRatingProps) {
-  const effective = value ?? rating ?? 0;
-  const v = Math.max(0, Math.min(outOf, Math.round(effective)));
+}) => {
+  const val = typeof rating === "number" ? rating : value ?? 0;
+  const full = Math.floor(val);
+  const rest = Math.max(0, Math.min(1, val - full));
 
   return (
     <div
-      className={clsx("inline-flex items-center gap-0.5", className)}
-      aria-label={`${v}/${outOf} stars`}
-      style={{ fontSize: sizePx }}
+      className={cn("flex items-center gap-0.5", className)}
+      aria-label={`${val} von ${outOf} Sternen`}
     >
       {Array.from({ length: outOf }).map((_, i) => {
-        const filled = i < v;
-
-        // getrennte Branches -> keine union-Prop-Probleme, kein `any`
-        if (onChange) {
-          return (
-            <button
-              key={i}
-              type="button"
-              onClick={() => onChange(i + 1)}
-              className="cursor-pointer select-none leading-none"
-              aria-label={`${i + 1} star${i === 0 ? "" : "s"}`}
-            >
-              {filled ? "★" : "☆"}
-            </button>
-          );
-        }
-
+        const fill = i < full ? 1 : i === full ? rest : 0;
         return (
-          <span
-            key={i}
-            className="leading-none"
-            aria-label={`${i + 1} star${i === 0 ? "" : "s"}`}
-          >
-            {filled ? "★" : "☆"}
+          <span key={i} className="relative inline-block h-4 w-4">
+            <Star size={16} className="absolute inset-0 text-slate-300" />
+            <span
+              className="absolute inset-0 overflow-hidden"
+              style={{ width: `${fill * 100}%` }}
+            >
+              <Star size={16} className="text-amber-500" />
+            </span>
           </span>
         );
       })}
     </div>
   );
-}
+};
 
 export default StarRating;
+export { StarRating };

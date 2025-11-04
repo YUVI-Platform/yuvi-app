@@ -1,41 +1,31 @@
 "use client";
-
 import * as React from "react";
-
-type Variant =
-  | "default"
-  | "secondary"
-  | "outline"
-  | "success"
-  | "warning"
-  | "destructive";
+import { cn } from "@/lib/utils";
 
 export type BadgeProps = React.HTMLAttributes<HTMLSpanElement> & {
-  variant?: Variant;
+  variant?: "default" | "secondary" | "destructive" | "outline";
 };
 
-const map: Record<Variant, string> = {
-  default: "bg-slate-900 text-white ring-slate-900/10",
-  secondary: "bg-slate-100 text-slate-900 ring-slate-200",
-  outline: "bg-white text-slate-700 ring-slate-300",
-  success: "bg-emerald-50 text-emerald-700 ring-emerald-200",
-  warning: "bg-amber-50 text-amber-700 ring-amber-200",
-  destructive: "bg-rose-50 text-rose-700 ring-rose-200",
+const variantCls: Record<NonNullable<BadgeProps["variant"]>, string> = {
+  default: "bg-slate-900 text-white",
+  secondary: "bg-slate-100 text-slate-900",
+  destructive: "bg-red-100 text-red-700 ring-1 ring-inset ring-red-200",
+  outline: "border border-slate-200 text-slate-700",
 };
 
-export function Badge({
-  className,
-  variant = "secondary",
-  ...props
-}: BadgeProps) {
-  return (
+export const Badge = React.forwardRef<HTMLSpanElement, BadgeProps>(
+  ({ className, variant = "default", ...props }, ref) => (
     <span
-      className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs ring-1 ring-inset ${
-        map[variant]
-      } ${className ?? ""}`}
+      ref={ref}
+      className={cn(
+        "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium",
+        variantCls[variant],
+        className
+      )}
       {...props}
     />
-  );
-}
+  )
+);
+Badge.displayName = "Badge";
 
 export default Badge;

@@ -5,9 +5,10 @@ import { fetchAllStudios } from "@/utils/supabase/getStudios";
 import { useEffect, useState } from "react";
 
 import { StudioProps } from "@/Types/Studio";
-import { Star } from "feather-icons-react";
-// neu:
+
+// alt: import { StarRating } from "../ui/Cards/StarRating";
 import StarRating from "../ui/Cards/StarRating";
+// neu:
 
 // export interface StudioProps {
 //   name: string;
