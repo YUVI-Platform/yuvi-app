@@ -1,125 +1,100 @@
-// ./src/app/admin/invites/ui/inviteForm.tsx
+// src/app/admin/invites/ui/inviteForm.tsx
 "use client";
 
 import { useState } from "react";
 import { createInvite } from "../actions";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectTrigger,
-  SelectContent,
-  SelectItem,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { formatISO } from "date-fns";
 
-// ---- Types ----
-const roles = [
-  { value: "athlete", label: "Athlete" },
-  { value: "motionExpert", label: "Motion Expert" },
-  { value: "studioHost", label: "Studio Host" },
-] as const;
-
-type RoleValue = (typeof roles)[number]["value"];
-
-type CreateInviteInput = {
-  role: RoleValue;
+type Role = "athlete" | "motionExpert" | "studioHost";
+type CreateInviteArgs = {
+  role: Role;
   max_uses: number;
-  /** ISO-String oder null */
   expires_at: string | null;
 };
 
+const roles: { value: Role; label: string }[] = [
+  { value: "athlete", label: "Athlete" },
+  { value: "motionExpert", label: "Motion Expert" },
+  { value: "studioHost", label: "Studio Host" },
+];
+
 export default function InviteForm() {
-  const [role, setRole] = useState<RoleValue>("athlete");
+  const [role, setRole] = useState<Role>("athlete");
   const [maxUses, setMaxUses] = useState<number>(1);
-  const [expires, setExpires] = useState<Date | null>(null);
+  const [expiresLocal, setExpiresLocal] = useState<string>(""); // datetime-local string
   const [createdUrl, setCreatedUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // kleine helper für Client
   const baseUrl =
     process.env.NEXT_PUBLIC_APP_URL ||
     (typeof window !== "undefined" ? window.location.origin : "");
 
+  function toISOFromLocal(local: string): string | null {
+    if (!local) return null;
+    // local e.g. "2025-11-04T09:00"
+    const d = new Date(local);
+    return Number.isNaN(+d) ? null : d.toISOString();
+  }
+
   async function handleCreate() {
     setLoading(true);
     try {
-      const payload: CreateInviteInput = {
+      const payload: CreateInviteArgs = {
         role,
-        max_uses: maxUses,
-        expires_at: expires ? formatISO(expires) : null,
+        max_uses: Math.max(1, maxUses | 0),
+        expires_at: toISOFromLocal(expiresLocal),
       };
-
-      // Typ von res wird aus der Server Action abgeleitet (falls dort getypt)
       const res = await createInvite(payload);
       const url = `${baseUrl}/register?code=${res.code}`;
       setCreatedUrl(url);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to create";
-      alert(message);
+    } catch (e) {
+      const msg =
+        e instanceof Error ? e.message : "Failed to create invite link";
+      alert(msg);
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="rounded-2xl border p-4 space-y-4">
+    <div className="rounded-2xl border p-4 space-y-4 bg-white">
       <h2 className="text-lg font-medium">Create Invite</h2>
 
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="space-y-2">
-          <Label>Rolle</Label>
-          <Select value={role} onValueChange={(v: RoleValue) => setRole(v)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Rolle auswählen" />
-            </SelectTrigger>
-            <SelectContent>
-              {roles.map((r) => (
-                <SelectItem key={r.value} value={r.value}>
-                  {r.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <label className="text-sm font-medium">Rolle</label>
+          <select
+            className="w-full rounded-md border px-3 py-2 bg-white"
+            value={role}
+            onChange={(e) => setRole(e.target.value as Role)}
+          >
+            {roles.map((r) => (
+              <option key={r.value} value={r.value}>
+                {r.label}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="space-y-2">
-          <Label>Max. Verwendungen</Label>
-          <Input
+          <label className="text-sm font-medium">Max. Verwendungen</label>
+          <input
+            className="w-full rounded-md border px-3 py-2"
             type="number"
             min={1}
             value={maxUses}
-            onChange={(e) => {
-              const v = Number.parseInt(e.target.value || "1", 10);
-              setMaxUses(Number.isFinite(v) ? Math.max(1, v) : 1);
-            }}
+            onChange={(e) => setMaxUses(parseInt(e.target.value || "1", 10))}
           />
         </div>
 
         <div className="space-y-2">
-          <Label>Läuft ab am (optional)</Label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" className="w-full justify-start">
-                {expires ? expires.toLocaleString() : "Datum wählen"}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="p-2">
-              <Calendar
-                mode="single"
-                selected={expires ?? undefined}
-                onSelect={(d) => setExpires(d ?? null)}
-              />
-            </PopoverContent>
-          </Popover>
+          <label className="text-sm font-medium">Läuft ab am (optional)</label>
+          <input
+            className="w-full rounded-md border px-3 py-2"
+            type="datetime-local"
+            value={expiresLocal}
+            onChange={(e) => setExpiresLocal(e.target.value)}
+          />
         </div>
       </div>
 
@@ -128,7 +103,7 @@ export default function InviteForm() {
       </Button>
 
       {createdUrl && (
-        <div className="rounded-lg bg-muted p-3 text-sm flex items-center justify-between">
+        <div className="rounded-lg bg-slate-50 p-3 text-sm flex items-center justify-between">
           <span className="truncate">{createdUrl}</span>
           <Button
             size="sm"
