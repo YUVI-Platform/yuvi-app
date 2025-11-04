@@ -1,83 +1,121 @@
-import { StudioCardProps } from "@/Types/Studio";
-import {
-  ShowerHeadIcon,
-  ParkingSquareIcon,
-  ToiletIcon,
-  BlindsIcon,
-  SpotlightIcon,
-} from "lucide-react";
+// src/components/ui/Cards/StudioCards.tsx
+"use client";
+
+import clsx from "clsx";
 import Image from "next/image";
+import * as React from "react";
 
-import { Wifi, Speaker } from "feather-icons-react";
-import { StarRating } from "./StarRating";
+export type StudioCardProps = {
+  name: string;
+  address?: string;
+  size?: string;
+  /** z. B. "Feb.25" */
+  availableFrom?: string;
+  /** z. B. "Mar.26, 2025" */
+  availableTo?: string;
+  /** Ausstattungen / Merkmale */
+  features?: string[];
+  /** 0–5 */
+  rating?: number;
+  imageUrl?: string;
+  selected?: boolean;
+  className?: string;
+  onClick?: () => void;
+};
 
-export const StudioCard = ({
+function Stars({ value = 0 }: { value?: number }) {
+  const v = Math.max(0, Math.min(5, Math.floor(value || 0)));
+  return (
+    <div
+      className="inline-flex gap-0.5 text-amber-500"
+      aria-label={`${v} Sterne`}
+    >
+      {Array.from({ length: 5 }).map((_, i) => (
+        <span key={i}>{i < v ? "★" : "☆"}</span>
+      ))}
+    </div>
+  );
+}
+
+export function StudioCard({
   name,
   address,
   size,
   availableFrom,
   availableTo,
-  features,
-  rating,
+  features = [],
+  rating = 0,
   imageUrl,
-}: StudioCardProps) => {
-  console.log("Image URL:", imageUrl);
+  selected = false,
+  className,
+  onClick,
+}: StudioCardProps) {
   return (
-    <div className="flex flex-col overflow-hidden rounded-2xl h-fit shadow-lg w-full md:w-80 hover:scale-105 transition-transform duration-300 bg-white cursor-pointer">
-      <div className="flex justify-center items-center bg-indigo-200 overflow-hidden aspect-video">
-        <Image
-          src={imageUrl}
-          alt="Location Placeholder"
-          width={400}
-          height={400}
-          style={{ objectFit: "cover" }}
-        />
+    <div
+      role={onClick ? "button" : undefined}
+      onClick={onClick}
+      className={clsx(
+        "flex gap-3 rounded-xl border bg-white p-3 transition",
+        selected ? "ring-2 ring-black" : "hover:bg-slate-50",
+        className
+      )}
+    >
+      <div className="relative h-20 w-20 overflow-hidden rounded-lg bg-slate-100 sm:h-24 sm:w-24">
+        {imageUrl ? (
+          <Image
+            src={imageUrl}
+            alt={name}
+            fill
+            sizes="96px"
+            className="object-cover"
+          />
+        ) : (
+          <div className="grid h-full w-full place-items-center text-xs text-slate-400">
+            No img
+          </div>
+        )}
       </div>
-      <div className="flex flex-col w-full h-1/2 overflow-hidden p-4 gap-2">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold  overflow-hidden text-ellipsis whitespace-nowrap ">
-            {name}
-          </h3>
-          <div className="flex items-center gap-1">
-            <StarRating rating={rating} />
-          </div>
+
+      <div className="min-w-0 flex-1">
+        <div className="flex items-start justify-between gap-2">
+          <p className="truncate text-sm font-medium">{name}</p>
+          <Stars value={rating} />
         </div>
-        <div className="flex items-center gap-2">
-          <span className="bg-emerald-400 w-fit rounded-full px-2 py-1 text-emerald-700 text-xs font-semibold">
-            Available
-          </span>
-          <span className="text-sm text-slate-500">
-            {availableFrom} - {availableTo}
-          </span>
+
+        {address && (
+          <p className="truncate text-xs text-slate-600">{address}</p>
+        )}
+
+        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">
+          {size && <span>{size}</span>}
+          {(availableFrom || availableTo) && (
+            <span className="truncate">
+              • Verfügbar: {availableFrom ?? "—"}{" "}
+              {availableTo ? `– ${availableTo}` : ""}
+            </span>
+          )}
         </div>
-        <p className="text-sm text-slate-500">{address}</p>
-        <div className="flex items-center gap-4 text-slate-500">
-          <span>{size}</span>
-          <div className="flex items-center gap-4">
-            {features.includes("Wifi") && (
-              <Wifi className="" size={16} strokeWidth={2} />
-            )}
-            {features.includes("Soundanlage") && (
-              <Speaker className="" size={16} strokeWidth={2} />
-            )}
-            {features.includes("Dusche") && (
-              <ShowerHeadIcon className="text-slate-500" size={16} />
-            )}
-            {features.includes("Parkplatz") && (
-              <ParkingSquareIcon className="text-slate-500" size={16} />
-            )}
-            {features.includes("WC") && (
-              <ToiletIcon className="text-slate-500" size={16} />
-            )}
-            {features.includes("Umkleide") && (
-              <BlindsIcon className="text-slate-500" size={16} />
-            )}
-            {features.includes("Lichtanlage") && (
-              <SpotlightIcon className="text-slate-500" size={16} />
+
+        {!!features.length && (
+          <div className="mt-2 flex flex-wrap gap-1">
+            {features.slice(0, 6).map((f) => (
+              <span
+                key={f}
+                className="rounded-full bg-slate-50 px-2 py-0.5 text-[10px] text-slate-700 ring-1 ring-inset ring-slate-200"
+              >
+                {f}
+              </span>
+            ))}
+            {features.length > 6 && (
+              <span className="text-[10px] text-slate-500">
+                +{features.length - 6}
+              </span>
             )}
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
-};
+}
+
+export default StudioCard;

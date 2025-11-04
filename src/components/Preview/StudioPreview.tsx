@@ -6,7 +6,8 @@ import { useEffect, useState } from "react";
 
 import { StudioProps } from "@/Types/Studio";
 import { Star } from "feather-icons-react";
-import { StarRating } from "../ui/Cards/StarRating";
+// neu:
+import StarRating from "../ui/Cards/StarRating";
 
 // export interface StudioProps {
 //   name: string;
@@ -62,9 +63,12 @@ const StudioPreview = () => {
           <h1 className="text-4xl font-bold">
             {studios[0] ? studios[0]?.studio_name : "Studio Name"}
           </h1>
-          <StarRating
-            rating={studios[0] ? studios[0]?.ratings?.stars || 0 : 4.5}
-          />
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold">
+              {studios?.[0]?.studio_name ?? "Studio"}
+            </h1>
+            <StarRating value={studios?.[0]?.ratings?.stars ?? 4.5} />
+          </div>
         </div>
         <p>
           {studios[0] ? studios[0]?.studio_description : "Studio Description"}
