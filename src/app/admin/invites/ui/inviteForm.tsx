@@ -3,7 +3,7 @@
 
 import { useState } from "react";
 import { createInvite } from "../actions";
-import Button from "@/components/ui/button";
+import Button from "@/components/ui/Button";
 
 type Role = "athlete" | "motionExpert" | "studioHost";
 type CreateInviteArgs = {
