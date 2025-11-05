@@ -2,8 +2,8 @@
 "use client";
 
 import { toggleInvite, deleteInvite } from "../actions";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import Button from "@/components/ui/button";
+import Badge from "@/components/ui/badge";
 import { useTransition } from "react";
 
 type Invite = {

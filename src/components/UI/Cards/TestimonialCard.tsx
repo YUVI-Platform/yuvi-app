@@ -1,6 +1,6 @@
 import React from "react";
 import Image from "next/image";
-import { StarRating } from "./StarRating";
+import StarRating from "./StarRating";
 
 interface TestimonialCardProps {
   name?: string;

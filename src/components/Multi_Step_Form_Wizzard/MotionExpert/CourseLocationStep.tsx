@@ -1,6 +1,6 @@
 import { StudioProps } from "@/Types/Studio";
 // alt: import { StudioCard } from "../../ui/Cards/StudioCards";
-import StudioCard from "../../ui/Cards/StudioCards";
+import StudioCard from "@/components/ui/Cards/StudioCards";
 
 export type CourseLocationType = "custom" | "fromList";
 

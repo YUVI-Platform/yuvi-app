@@ -1,4 +1,4 @@
-import { StarRating } from "./StarRating";
+import StarRating from "./StarRating";
 import Image from "next/image";
 import React from "react";
 

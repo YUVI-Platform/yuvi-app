@@ -1,7 +1,7 @@
 import { motionExpertTestData } from "@/testdata/motionExpertData";
 import React from "react";
 import Image from "next/image";
-import { StarRating } from "../Cards/StarRating";
+import StarRating from "../Cards/StarRating";
 
 const MotionExpertsSection = () => {
   const randomIndex = Math.floor(Math.random() * 4);
