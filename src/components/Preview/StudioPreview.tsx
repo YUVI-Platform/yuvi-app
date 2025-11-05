@@ -5,37 +5,7 @@ import { fetchAllStudios } from "@/utils/supabase/getStudios";
 import { useEffect, useState } from "react";
 
 import { StudioProps } from "@/Types/Studio";
-
-// alt: import { StarRating } from "../ui/Cards/StarRating";
 import StarRating from "../ui/Cards/StarRating";
-// neu:
-
-// export interface StudioProps {
-//   name: string;
-//   uploaded_files?: File[];
-//   image_previews?: string[];
-//   studio_name?: string;
-//   studio_address?: {
-//     street?: string;
-//     city?: string;
-//     zip?: string;
-//     country?: string;
-//   };
-//   studio_size?: number;
-//   studio_description?: string;
-//   amenities?: string[];
-//   availability?: {
-//     startDate?: string;
-//     endDate?: string;
-//     weeklySchedule?: { day: string; from: string; to: string }[];
-//   };
-//   ratings?: {
-//     stars?: number;
-//     reviews?: string[];
-//   };
-
-//   user_id?: string;
-// }
 
 const StudioPreview = () => {
   const [studios, setStudios] = useState<StudioProps[]>([]);
