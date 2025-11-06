@@ -1,25 +1,18 @@
-"use client";
+// app/(protected)/components/CancelBookingButton.tsx
+import SubmitButton from "./SubmitButton";
+import { cancelMyBookingAction } from "../dashboard/athlete/occ/[id]/actions";
 
-import { useFormStatus } from "react-dom";
-import { cancelMyBookingAction } from "@/app/(protected)/dashboard/athlete/occ/[id]/actions";
-
-export function CancelBookingButton({ bookingId }: { bookingId: string }) {
+export default function CancelBookingButton({
+  occurrenceId,
+}: {
+  occurrenceId: string;
+}) {
   return (
-    <form action={cancelMyBookingAction.bind(null, bookingId)}>
-      <Btn />
+    <form action={cancelMyBookingAction} className="inline-block">
+      <input type="hidden" name="occurrenceId" value={occurrenceId} />
+      <SubmitButton className="inline-flex items-center justify-center rounded-lg px-4 py-2 bg-rose-600 text-white disabled:opacity-50">
+        Buchung stornieren
+      </SubmitButton>
     </form>
-  );
-}
-
-function Btn() {
-  const { pending } = useFormStatus();
-  return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="w-full rounded-xl border border-rose-600 text-rose-600 py-3 font-medium"
-    >
-      {pending ? "Storniere…" : "Buchung stornieren"}
-    </button>
   );
 }

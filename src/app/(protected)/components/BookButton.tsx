@@ -1,25 +1,12 @@
-"use client";
-
-import { useFormStatus } from "react-dom";
-import { bookOccurrenceAction } from "@/app/(protected)/dashboard/athlete/occ/[id]/actions";
+// app/(protected)/components/BookButton.tsx
+import SubmitButton from "./SubmitButton";
+import { bookOccurrenceAction } from "../dashboard/athlete/occ/[id]/actions";
 
 export default function BookButton({ occurrenceId }: { occurrenceId: string }) {
   return (
-    <form action={bookOccurrenceAction.bind(null, occurrenceId)}>
-      <Submit />
+    <form action={bookOccurrenceAction} className="inline-block">
+      <input type="hidden" name="occurrenceId" value={occurrenceId} />
+      <SubmitButton>Jetzt buchen</SubmitButton>
     </form>
-  );
-}
-
-function Submit() {
-  const { pending } = useFormStatus();
-  return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="w-full rounded-xl bg-black text-white py-3 font-medium"
-    >
-      {pending ? "Buchen…" : "Jetzt buchen"}
-    </button>
   );
 }

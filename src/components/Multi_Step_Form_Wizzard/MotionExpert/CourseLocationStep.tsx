@@ -1,13 +1,11 @@
 import { StudioProps } from "@/types/Studio";
 // alt: import { StudioCard } from "../../ui/Cards/StudioCards";
-import StudioCard from "@/components/ui/Cards/StudioCards";
 
 export type CourseLocationType = "custom" | "fromList";
 
 import { useEffect, useState } from "react";
 // import { MultiStateButton } from "../../UI/MultiStateButton";
 import { fetchAllStudios } from "@/utils/supabase/getStudios";
-import dayjs from "dayjs";
 
 export const CourseLocationStep = () => {
   const [selectedLocation, setSelectedLocation] = useState<StudioProps | null>(
@@ -52,27 +50,7 @@ export const CourseLocationStep = () => {
                     : ""
                 }
                 onClick={() => setSelectedLocation(studio)}
-              >
-                <StudioCard
-                  name={studio.studio_name || "Loading..."}
-                  address={`${studio.studio_address?.street ?? "Loading..."}`}
-                  size={studio.studio_size ? `${studio.studio_size} m²` : "N/A"}
-                  availableFrom={
-                    dayjs(studio.availability?.startDate).format("MMMYY") ||
-                    "N/A"
-                  }
-                  availableTo={
-                    dayjs(studio.availability?.endDate).format("MMMYY") || "N/A"
-                  }
-                  features={studio.amenities || []}
-                  rating={studio.ratings?.stars || 0}
-                  imageUrl={
-                    studio.image_previews
-                      ? studio.image_previews[0]
-                      : "/placeholder.jpg"
-                  }
-                />
-              </div>
+              ></div>
             );
           })}
         </div>
