@@ -63,8 +63,8 @@ export async function createSingleSlot(formData: FormData) {
   const { error } = await supabaseAdmin.from("studio_slots").insert(row);
   if (error) throw new Error(error.message);
 
-  revalidatePath(`/dashboard/studioHost/locations/${location_id}/slots`);
-  revalidatePath(`/dashboard/studioHost/locations/${location_id}`);
+  revalidatePath(`/dashboard/studiohost/locations/${location_id}/slots`);
+  revalidatePath(`/dashboard/studiohost/locations/${location_id}`);
   return { ok: true as const };
 }
 
@@ -200,8 +200,8 @@ export async function createRecurringSlots(formData: FormData) {
     ok++;
   }
 
-  revalidatePath(`/dashboard/studioHost/locations/${parsed.location_id}/slots`);
-  revalidatePath(`/dashboard/studioHost/locations/${parsed.location_id}`);
+  revalidatePath(`/dashboard/studiohost/locations/${parsed.location_id}/slots`);
+  revalidatePath(`/dashboard/studiohost/locations/${parsed.location_id}`);
   return { ok: true as const, created: ok, skipped };
 }
 
@@ -215,7 +215,7 @@ export async function deleteSlot(formData: FormData) {
     .delete()
     .eq("id", id);
   if (error) throw new Error(error.message);
-  revalidatePath(`/dashboard/studioHost/locations/${location_id}/slots`);
+  revalidatePath(`/dashboard/studiohost/locations/${location_id}/slots`);
   return { ok: true as const };
 }
 
@@ -228,6 +228,6 @@ export async function setBlocked(formData: FormData) {
     .update({ status: blocked ? "blocked" : "available" })
     .eq("id", id);
   if (error) throw new Error(error.message);
-  revalidatePath(`/dashboard/studioHost/locations/${location_id}/slots`);
+  revalidatePath(`/dashboard/studiohost/locations/${location_id}/slots`);
   return { ok: true as const };
 }

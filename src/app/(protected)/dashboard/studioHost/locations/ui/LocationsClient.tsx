@@ -143,13 +143,13 @@ function LocationCard({ loc }: { loc: LocationRow }) {
         {/* Actions */}
         <div className="mt-3 flex gap-2">
           <a
-            href={`/dashboard/studioHost/locations/${loc.id}/edit`}
+            href={`/dashboard/studiohost/locations/${loc.id}/edit`}
             className="flex-1 rounded-md border px-3 py-1.5 text-center text-sm hover:bg-slate-50"
           >
             Bearbeiten
           </a>
           <a
-            href={`/dashboard/studioHost/locations/${loc.id}`}
+            href={`/dashboard/studiohost/locations/${loc.id}`}
             className="flex-1 rounded-md border px-3 py-1.5 text-center text-sm hover:bg-slate-50"
           >
             Vorschau

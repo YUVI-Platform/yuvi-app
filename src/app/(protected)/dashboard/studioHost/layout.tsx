@@ -21,7 +21,7 @@ export default async function StudioHostLayout({
   // Session laden
   const { data: me } = await supa.auth.getUser();
   const user = me?.user;
-  if (!user) redirect("/login?redirectTo=/dashboard/studioHost");
+  if (!user) redirect("/login?redirectTo=/dashboard/studiohost");
 
   // Rollen prüfen (RLS-Policy auf user_roles: "self read" muss gesetzt sein)
   const { data: roles } = await supa
@@ -31,7 +31,7 @@ export default async function StudioHostLayout({
   const isStudioHost =
     !!roles?.some((r) => r.role === "studioHost") ||
     !!roles?.some((r) => r.role === "admin");
-  if (!isStudioHost) redirect("/dashboard"); // kein Zugriff auf StudioHost-Dashboard
+  if (!isStudioHost) redirect("/dashboard"); // kein Zugriff auf studiohost-Dashboard
 
   return (
     <div className="min-h-[100svh] grid grid-cols-[400px_1fr] bg-background">
@@ -46,30 +46,30 @@ export default async function StudioHostLayout({
           </Link>
         </div>
         <nav className="px-2 py-4 space-y-1">
-          <NavItem href="/dashboard/studioHost" label="Overview" />
+          <NavItem href="/dashboard/studiohost" label="Overview" />
           <NavItem
-            href="/dashboard/studioHost/locations"
+            href="/dashboard/studiohost/locations"
             label="Locations"
             icon={<Building2 size={18} />}
           />
           <NavItem
-            href="/dashboard/studioHost/sessions"
+            href="/dashboard/studiohost/sessions"
             label="Sessions"
             icon={<CalendarClock size={18} />}
           />
           <NavItem
-            href="/dashboard/studioHost/bookings"
+            href="/dashboard/studiohost/bookings"
             label="Bookings"
             icon={<ClipboardList size={18} />}
           />
           <div className="pt-3 mt-3 border-t" />
           <NavItem
-            href="/dashboard/studioHost/sessions/new"
+            href="/dashboard/studiohost/sessions/new"
             label="New Session"
             icon={<PlusCircle size={18} />}
           />
           <NavItem
-            href="/dashboard/studioHost/locations/new"
+            href="/dashboard/studiohost/locations/new"
             label="New Location"
             icon={<PlusCircle size={18} />}
           />

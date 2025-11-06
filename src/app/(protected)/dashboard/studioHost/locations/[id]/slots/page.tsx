@@ -14,25 +14,25 @@ import { RecurSubmitGuard } from "./ui/RecureSubmitGuard";
 export default async function SlotsPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: { id: string }; // ← kein Promise hier nötig
 }) {
-  const { id } = await params;
+  const { id } = params;
   const supa = await supabaseServerRead();
   const { data: me } = await supa.auth.getUser();
   if (!me?.user)
-    redirect(`/login?redirectTo=/dashboard/studioHost/locations/${id}/slots`);
+    redirect(`/login?redirectTo=/dashboard/studioHost/locations/${id}/slots`); // ← CamelCase
+
   const uid = me.user.id;
 
-  // Location inkl. price_per_slot
   const { data: loc } = await supa
     .from("studio_locations")
     .select("id,title,owner_user_id,host_user_id,price_per_slot")
     .eq("id", id)
     .maybeSingle();
-  if (!loc) redirect("/dashboard/studioHost/locations");
+  if (!loc) redirect("/dashboard/studioHost/locations"); // ← CamelCase
 
   const canEdit = loc.owner_user_id === uid || loc.host_user_id === uid;
-  if (!canEdit) redirect("/dashboard/studioHost/locations");
+  if (!canEdit) redirect("/dashboard/studioHost/locations"); // ← CamelCase
 
   const { data: slots } = await supa
     .from("studio_slots")
@@ -40,15 +40,23 @@ export default async function SlotsPage({
     .eq("location_id", id)
     .order("starts_at", { ascending: true });
 
-  // ---- Void-Adapter für Server Actions (form action erwartet Promise<void>) ----
-  const createSingleSlotAction = async (formData: FormData): Promise<void> => {
+  /* -------- Server-Wrapper für alle Form-Actions -------- */
+  async function createSingleSlotAction(formData: FormData): Promise<void> {
+    "use server";
     await createSingleSlot(formData);
-  };
-  const createRecurringSlotsAction = async (
-    formData: FormData
-  ): Promise<void> => {
+  }
+  async function createRecurringSlotsAction(formData: FormData): Promise<void> {
+    "use server";
     await createRecurringSlots(formData);
-  };
+  }
+  async function toggleBlockedAction(formData: FormData): Promise<void> {
+    "use server";
+    await setBlocked(formData);
+  }
+  async function deleteSlotAction(formData: FormData): Promise<void> {
+    "use server";
+    await deleteSlot(formData);
+  }
 
   return (
     <div className="mx-auto max-w-4xl py-4">
@@ -65,7 +73,7 @@ export default async function SlotsPage({
             </b>{" "}
             {!Number.isFinite(Number(loc.price_per_slot)) && (
               <Link
-                href={`/dashboard/studioHost/locations/${id}/edit`}
+                href={`/dashboard/studioHost/locations/${id}/edit`} // ← CamelCase
                 className="ml-2 underline"
               >
                 jetzt festlegen
@@ -74,16 +82,15 @@ export default async function SlotsPage({
           </p>
         </div>
 
-        {/* ✅ Link statt <a> */}
         <Link
-          href={`/dashboard/studioHost/locations/${id}`}
+          href={`/dashboard/studioHost/locations/${id}`} // ← CamelCase
           className="text-sm underline text-slate-600"
         >
           Zurück zur Location
         </Link>
       </div>
 
-      {/* Einzelslot: nur Start, Ende = +60min */}
+      {/* Einzelslot */}
       <section className="mb-6 rounded-xl border bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-slate-700">
           Einzelnen Slot anlegen (60 min)
@@ -220,11 +227,7 @@ export default async function SlotsPage({
                     : "alle Tags erlaubt"}
                 </div>
                 <div className="sm:col-span-2 flex justify-end gap-2">
-                  <form
-                    action={async (fd: FormData) => {
-                      await setBlocked(fd);
-                    }}
-                  >
+                  <form action={toggleBlockedAction}>
                     <input type="hidden" name="id" value={s.id} />
                     <input type="hidden" name="location_id" value={id} />
                     <input
@@ -236,12 +239,11 @@ export default async function SlotsPage({
                       {s.status === "blocked" ? "Freigeben" : "Blockieren"}
                     </SubmitButton>
                   </form>
+
                   <ConfirmButton
                     label="Löschen"
                     confirmText="Diesen Slot wirklich löschen?"
-                    action={async (fd) => {
-                      await deleteSlot(fd);
-                    }} // sicherheitshalber auch void
+                    action={deleteSlotAction} // ← echte Server Action referenzieren
                     payload={{ id: s.id, location_id: id }}
                   />
                 </div>

@@ -230,7 +230,7 @@ async function getRedirectPath(uid: string): Promise<string> {
   const targetByRole: Record<string, string> = {
     athlete: "/dashboard/athlete/profile",
     motionExpert: "/dashboard/motionexpert/profile",
-    studioHost: "/dashboard/studioHost/profile",
+    studioHost: "/dashboard/studiohost/profile",
     admin: "/admin/invites",
   };
   return targetByRole[role] || "/login";

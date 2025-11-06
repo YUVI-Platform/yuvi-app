@@ -71,7 +71,7 @@ export default async function NewLocationPage() {
   const supa = await supabaseServerRead();
   const { data: me } = await supa.auth.getUser();
   if (!me?.user)
-    redirect("/login?redirectTo=/dashboard/studioHost/locations/new");
+    redirect("/login?redirectTo=/dashboard/studiohost/locations/new");
   const uid = me.user.id;
 
   const { data: roles } = await supa
@@ -123,7 +123,7 @@ export default async function NewLocationPage() {
     const { data: userData } = await supaWrite.auth.getUser();
     const currentUid = userData.user?.id;
     if (!currentUid) {
-      redirect("/login?redirectTo=/dashboard/studioHost/locations/new");
+      redirect("/login?redirectTo=/dashboard/studiohost/locations/new");
     }
 
     // Insert-Payload strikt typisieren, damit der richtige Overload greift
@@ -146,7 +146,7 @@ export default async function NewLocationPage() {
     const { error } = await supaWrite.from("studio_locations").insert(payload);
     if (error) throw new Error(error.message);
 
-    redirect("/dashboard/studioHost");
+    redirect("/dashboard/studiohost");
   }
 
   return (
@@ -265,7 +265,7 @@ export default async function NewLocationPage() {
 
         <div className="flex gap-3 pt-2">
           <Link
-            href="/dashboard/studioHost/locations"
+            href="/dashboard/studiohost/locations"
             className="rounded-md border px-4 py-2"
           >
             Abbrechen

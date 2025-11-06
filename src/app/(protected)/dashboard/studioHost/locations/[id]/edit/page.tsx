@@ -71,7 +71,7 @@ export default async function EditLocationPage({
   const supa = await supabaseServerRead();
   const { data: me } = await supa.auth.getUser();
   if (!me?.user)
-    redirect(`/login?redirectTo=/dashboard/studioHost/locations/${id}/edit`);
+    redirect(`/login?redirectTo=/dashboard/studiohost/locations/${id}/edit`);
   const uid = me.user.id;
 
   const { data: loc, error } = await supa
@@ -85,9 +85,9 @@ export default async function EditLocationPage({
     .eq("id", id)
     .maybeSingle();
 
-  if (error || !loc) redirect("/dashboard/studioHost/locations");
+  if (error || !loc) redirect("/dashboard/studiohost/locations");
   const canEdit = loc.owner_user_id === uid || loc.host_user_id === uid;
-  if (!canEdit) redirect("/dashboard/studioHost/locations");
+  if (!canEdit) redirect("/dashboard/studiohost/locations");
 
   const addr: Address = loc.address ?? {
     street: "",
@@ -245,7 +245,7 @@ export default async function EditLocationPage({
 
         <div className="flex gap-3 pt-2">
           <Link
-            href="/dashboard/studioHost/locations"
+            href="/dashboard/studiohost/locations"
             className="rounded-md border px-4 py-2"
           >
             Abbrechen

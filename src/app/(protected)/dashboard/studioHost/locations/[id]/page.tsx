@@ -32,7 +32,7 @@ export default async function LocationPreviewPage({
   const supa = await supabaseServerRead();
   const { data: me } = await supa.auth.getUser();
   if (!me?.user)
-    redirect(`/login?redirectTo=/dashboard/studioHost/locations/${id}`);
+    redirect(`/login?redirectTo=/dashboard/studiohost/locations/${id}`);
   const uid = me.user.id;
 
   // Location laden
@@ -44,7 +44,7 @@ export default async function LocationPreviewPage({
     .eq("id", id)
     .maybeSingle();
 
-  if (error || !loc) redirect("/dashboard/studioHost/locations");
+  if (error || !loc) redirect("/dashboard/studiohost/locations");
 
   const tagList: string[] = Array.isArray(loc.allowed_tags)
     ? (loc.allowed_tags as string[])
@@ -52,7 +52,7 @@ export default async function LocationPreviewPage({
 
   // Sichtbarkeit im Dashboard nur für Owner/Host
   const canView = loc.owner_user_id === uid || loc.host_user_id === uid;
-  if (!canView) redirect("/dashboard/studioHost/locations");
+  if (!canView) redirect("/dashboard/studiohost/locations");
 
   // ✅ kein any
   const addr: Address =
@@ -107,13 +107,13 @@ export default async function LocationPreviewPage({
           </form>
 
           <Link
-            href={`/dashboard/studioHost/locations/${loc.id}/edit`}
+            href={`/dashboard/studiohost/locations/${loc.id}/edit`}
             className="rounded-md border px-3 py-2 text-sm hover:bg-slate-50"
           >
             Bearbeiten
           </Link>
           <Link
-            href={`/dashboard/studioHost/locations/${loc.id}/slots`}
+            href={`/dashboard/studiohost/locations/${loc.id}/slots`}
             className="rounded-md bg-black px-3 py-2 text-sm text-white hover:bg-black/90"
           >
             Slots verwalten
@@ -187,7 +187,7 @@ export default async function LocationPreviewPage({
               Noch keine zukünftigen Slots.
             </span>
             <Link
-              href={`/dashboard/studioHost/locations/${loc.id}/slots`}
+              href={`/dashboard/studiohost/locations/${loc.id}/slots`}
               className="rounded-md bg-black px-3 py-1.5 text-white hover:bg-black/90"
             >
               Slots anlegen
@@ -227,7 +227,7 @@ export default async function LocationPreviewPage({
             ))}
             <div className="pt-3">
               <Link
-                href={`/dashboard/studioHost/locations/${loc.id}/slots`}
+                href={`/dashboard/studiohost/locations/${loc.id}/slots`}
                 className="text-sm text-slate-600 underline"
               >
                 Alle Slots verwalten
@@ -241,7 +241,7 @@ export default async function LocationPreviewPage({
       <div className="mt-8 flex justify-between">
         {/* ✅ Link statt <a> */}
         <Link
-          href="/dashboard/studioHost/locations"
+          href="/dashboard/studiohost/locations"
           className="text-sm text-slate-600 underline"
         >
           Zurück zur Übersicht
