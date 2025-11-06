@@ -1,6 +1,7 @@
 // app/(protected)/dashboard/motionexpert/sessions/page.tsx
 import { supabaseServerRead } from "@/lib/supabaseServer";
 import SessionsDashboardClient from "./SessionsDashboardClient";
+import type { Tables, Enums } from "@/types/supabase";
 
 function startOfDayLocal(d: Date) {
   const x = new Date(d);
@@ -13,33 +14,38 @@ function addDays(d: Date, n: number) {
   return c;
 }
 
-type SessionRow = {
-  id: string;
-  title: string | null;
-  image_urls: string[] | null;
-  max_participants: number | null;
-};
-type OccurrenceRow = {
-  id: string;
-  session_id: string;
-  starts_at: string; // ISO
-  ends_at: string; // ISO
-  capacity: number | null;
-};
+type SessionRow = Pick<
+  Tables<"sessions">,
+  "id" | "title" | "image_urls" | "max_participants"
+>;
+type OccurrenceRow = Pick<
+  Tables<"session_occurrences">,
+  "id" | "session_id" | "starts_at" | "ends_at" | "capacity"
+>;
+type BookingRow = Pick<Tables<"bookings">, "occurrence_id" | "status">;
+
 type AttendeeCountByOccurrence = Record<string, number>;
+const COUNT_STATUSES: Enums<"booking_status">[] = [
+  "pending",
+  "confirmed",
+  "completed",
+];
+
+// ---- Fix: Promise-Variante für searchParams ----
+type SearchParams = Record<string, string | string[] | undefined>;
 
 export default async function Page({
   searchParams,
 }: {
-  searchParams?: Record<string, string | string[] | undefined>;
+  searchParams?: Promise<SearchParams>;
 }) {
-  const supa = await supabaseServerRead();
+  const sp = (await searchParams) ?? {}; // <- wichtig
 
+  const supa = await supabaseServerRead();
   const { data: auth } = await supa.auth.getUser();
   const uid = auth?.user?.id ?? null;
 
   if (!uid) {
-    // In deiner App likely via middleware geschützt – hier einfacher Fallback:
     return <div className="p-6 text-sm text-slate-700">Bitte einloggen.</div>;
   }
 
@@ -77,34 +83,34 @@ export default async function Page({
 
   if (oErr) throw new Error(oErr.message);
 
-  // 3) Optional: Teilnehmer zählen (falls Tabelle existiert)
-  let attendees: AttendeeCountByOccurrence = {};
-  try {
-    const occIds = (occ ?? []).map((o) => o.id);
-    if (occIds.length) {
-      const { data: regs } = await supa
-        .from("session_registrations")
-        .select("session_occurrence_id")
-        .in("session_occurrence_id", occIds);
+  const occIds = (occ ?? []).map((o) => o.id);
 
-      if (regs) {
-        attendees = regs.reduce<AttendeeCountByOccurrence>((acc, r) => {
-          const id = (r as any).session_occurrence_id as string;
-          acc[id] = (acc[id] ?? 0) + 1;
-          return acc;
-        }, {});
-      }
-    }
-  } catch {
-    // ignore if not present
+  // 3) Teilnehmer via bookings zählen
+  let attendees: AttendeeCountByOccurrence = {};
+  if (occIds.length) {
+    const { data: bks, error: bErr } = await supa
+      .from("bookings")
+      .select("occurrence_id, status")
+      .in("occurrence_id", occIds);
+
+    if (bErr) throw new Error(bErr.message);
+
+    attendees = (bks as BookingRow[]).reduce<AttendeeCountByOccurrence>(
+      (acc, b) => {
+        if (COUNT_STATUSES.includes(b.status)) {
+          acc[b.occurrence_id] = (acc[b.occurrence_id] ?? 0) + 1;
+        }
+        return acc;
+      },
+      {}
+    );
   }
 
   const sessions = (mySessions ?? []) as SessionRow[];
   const occurrences = (occ ?? []) as OccurrenceRow[];
 
   // Vor-Auswahl aus URL (?occ=...) oder erste kommende
-  const urlOcc =
-    typeof searchParams?.occ === "string" ? searchParams!.occ : undefined;
+  const urlOcc = typeof sp.occ === "string" ? sp.occ : undefined;
   const initialSelectedOccurrenceId =
     (urlOcc && occurrences.find((o) => o.id === urlOcc)?.id) ||
     occurrences[0]?.id ||

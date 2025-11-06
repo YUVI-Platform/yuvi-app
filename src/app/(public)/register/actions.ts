@@ -14,9 +14,17 @@ export async function validateInvite(code: string) {
 
   if (error || !data) return { ok: false as const };
 
-  const expired = data.expires_at && new Date(data.expires_at) < new Date();
-  const usable =
-    data.is_active && !expired && (data.used_count ?? 0) < data.max_uses;
+  const now = Date.now();
+  const expired =
+    !!data.expires_at && new Date(data.expires_at).getTime() < now;
+
+  const isActive = !!data.is_active;
+  const used = typeof data.used_count === "number" ? data.used_count : 0;
+
+  // null = unbegrenzt
+  const belowLimit = data.max_uses == null ? true : used < data.max_uses;
+
+  const usable = isActive && !expired && belowLimit;
 
   return usable
     ? { ok: true as const, role: data.role as Role }

@@ -7,6 +7,7 @@ import AmenitiesPicker from "./ui/AmenitiesPicker";
 import TagsPicker from "./ui/TagsPicker";
 import ImageMultiUpload from "./ui/ImageMultiUpload";
 import { SubmitButton } from "@/components/ui/SubmitButton";
+import type { TablesInsert } from "@/types/supabase";
 
 // fixe Optionen (MVP, zentral gepflegt) – NICHT exportieren!
 const AMENITIES_OPTIONS = [
@@ -83,8 +84,10 @@ export default async function NewLocationPage() {
   if (!isStudioHost) redirect("/dashboard");
 
   // Server Action
-  async function createLocation(formData: FormData) {
+  // Server Action
+  async function createLocation(formData: FormData): Promise<void> {
     "use server";
+
     const parsed = schema.safeParse({
       title: formData.get("title"),
       description: formData.get("description"),
@@ -119,23 +122,30 @@ export default async function NewLocationPage() {
     const supaWrite = await supabaseServerAction();
     const { data: userData } = await supaWrite.auth.getUser();
     const currentUid = userData.user?.id;
+    if (!currentUid) {
+      redirect("/login?redirectTo=/dashboard/studioHost/locations/new");
+    }
 
-    const { error } = await supaWrite.from("studio_locations").insert({
-      owner_user_id: currentUid,
-      host_user_id: currentUid,
-      title: v.title,
+    // Insert-Payload strikt typisieren, damit der richtige Overload greift
+    const payload: TablesInsert<"studio_locations"> = {
+      host_user_id: currentUid, // required string ✅
+      owner_user_id: currentUid, // optional, aber ok
+      title: v.title, // required string ✅
+      address, // required Json ✅
       description: v.description || null,
-      address,
       area_sqm: v.area_sqm ?? null,
-      max_participants: v.max_participants,
+      max_participants: v.max_participants, // required number ✅
       amenities: v.amenities_json.length ? v.amenities_json : null,
       allowed_tags: v.allowed_tags_json.length ? v.allowed_tags_json : null,
       image_urls: v.image_urls_json.length ? v.image_urls_json : null,
       house_rules: v.house_rules || null,
       is_draft: v.is_draft ?? true,
-    });
+      // price_per_slot kannst du später setzen, ist optional
+    };
 
+    const { error } = await supaWrite.from("studio_locations").insert(payload);
     if (error) throw new Error(error.message);
+
     redirect("/dashboard/studioHost");
   }
 

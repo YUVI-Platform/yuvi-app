@@ -200,39 +200,84 @@ async function getCountsSafe(supa: SupabaseClient, uid: string) {
   let sessionsCount: number | null = null;
   let pendingBookingsCount: number | null = null;
 
+  // A) Locations (du bist Owner ODER Host)
+  let locationIds: string[] = [];
   try {
-    const { count, error } = await supa
+    const { data, error, count } = await supa
       .from("studio_locations")
-      .select("*", { count: "exact", head: true })
-      .eq("owner_user_id", uid);
+      .select("id", { count: "exact" })
+      .or(`owner_user_id.eq.${uid},host_user_id.eq.${uid}`);
     if (error) throw error;
     locationsCount = count ?? 0;
+    locationIds = (data ?? []).map((l) => l.id);
   } catch {
     errors.push("studio_locations");
+    locationsCount = null;
   }
 
+  // B) Slots für diese Locations
+  let slotIds: string[] = [];
   try {
-    const { count, error } = await supa
-      .from("sessions")
-      .select("*", { count: "exact", head: true })
-      .eq("host_user_id", uid)
-      .gte("start_at", new Date().toISOString());
-    if (error) throw error;
-    sessionsCount = count ?? 0;
+    if (locationIds.length) {
+      const { data, error } = await supa
+        .from("studio_slots")
+        .select("id, location_id")
+        .in("location_id", locationIds);
+      if (error) throw error;
+      slotIds = (data ?? []).map((s) => s.id);
+    } else {
+      slotIds = [];
+    }
   } catch {
-    errors.push("sessions");
+    errors.push("studio_slots");
+    slotIds = [];
   }
 
+  // C) Kommende Occurrences, die an deinen Slots hängen
   try {
-    const { count, error } = await supa
-      .from("bookings")
-      .select("*", { count: "exact", head: true })
-      .eq("host_user_id", uid)
-      .in("status", ["pending", "requested"]);
-    if (error) throw error;
-    pendingBookingsCount = count ?? 0;
+    if (slotIds.length) {
+      const { count, error } = await supa
+        .from("session_occurrences")
+        .select("*", { count: "exact", head: true })
+        .in("studio_slot_id", slotIds)
+        .gte("starts_at", new Date().toISOString());
+      if (error) throw error;
+      sessionsCount = count ?? 0; // „Upcoming Sessions“ = Anzahl Occurrences
+    } else {
+      sessionsCount = 0;
+    }
+  } catch {
+    errors.push("session_occurrences");
+    sessionsCount = null;
+  }
+
+  // D) Pending Bookings für diese Occurrences
+  try {
+    if (slotIds.length) {
+      const { data: occData, error: occErr } = await supa
+        .from("session_occurrences")
+        .select("id")
+        .in("studio_slot_id", slotIds);
+      if (occErr) throw occErr;
+
+      const occIds = (occData ?? []).map((o) => o.id);
+      if (occIds.length) {
+        const { count, error } = await supa
+          .from("bookings")
+          .select("*", { count: "exact", head: true })
+          .in("occurrence_id", occIds)
+          .eq("status", "pending"); // „requested“ gibt's in deinem Enum nicht
+        if (error) throw error;
+        pendingBookingsCount = count ?? 0;
+      } else {
+        pendingBookingsCount = 0;
+      }
+    } else {
+      pendingBookingsCount = 0;
+    }
   } catch {
     errors.push("bookings");
+    pendingBookingsCount = null;
   }
 
   return { locationsCount, sessionsCount, pendingBookingsCount, errors };
@@ -240,16 +285,52 @@ async function getCountsSafe(supa: SupabaseClient, uid: string) {
 
 async function UpcomingSessions({ uid }: { uid: string }) {
   const supa = await supabaseServerRead();
+
   try {
-    const { data } = await supa
-      .from("sessions")
-      .select("id, title, start_at, duration_min, location_name")
-      .eq("host_user_id", uid)
-      .gte("start_at", new Date().toISOString())
-      .order("start_at", { ascending: true })
+    // 1) Deine Locations (Owner ODER Host) → Map für Titel
+    const { data: locs } = await supa
+      .from("studio_locations")
+      .select("id, title")
+      .or(`owner_user_id.eq.${uid},host_user_id.eq.${uid}`);
+
+    const locationIds = (locs ?? []).map((l) => l.id);
+    if (!locationIds.length) {
+      return (
+        <div className="rounded-xl border bg-white p-5">
+          <p className="text-sm text-slate-600">Keine kommenden Sessions.</p>
+        </div>
+      );
+    }
+    const locationTitleById = new Map((locs ?? []).map((l) => [l.id, l.title]));
+
+    // 2) Slots dieser Locations → Map slotId → locationId
+    const { data: slots } = await supa
+      .from("studio_slots")
+      .select("id, location_id")
+      .in("location_id", locationIds);
+
+    const slotIds = (slots ?? []).map((s) => s.id);
+    if (!slotIds.length) {
+      return (
+        <div className="rounded-xl border bg-white p-5">
+          <p className="text-sm text-slate-600">Keine kommenden Sessions.</p>
+        </div>
+      );
+    }
+    const slotLocById = new Map(
+      (slots ?? []).map((s) => [s.id, s.location_id])
+    );
+
+    // 3) Kommende Occurrences dieser Slots
+    const { data: occ } = await supa
+      .from("session_occurrences")
+      .select("id, session_id, studio_slot_id, starts_at, ends_at, capacity")
+      .in("studio_slot_id", slotIds)
+      .gte("starts_at", new Date().toISOString())
+      .order("starts_at", { ascending: true })
       .limit(5);
 
-    if (!data || data.length === 0) {
+    if (!occ || !occ.length) {
       return (
         <div className="rounded-xl border bg-white p-5">
           <p className="text-sm text-slate-600">Keine kommenden Sessions.</p>
@@ -257,28 +338,49 @@ async function UpcomingSessions({ uid }: { uid: string }) {
       );
     }
 
+    // 4) Session-Meta (Titel, Dauer) holen
+    const sessionIds = Array.from(new Set(occ.map((o) => o.session_id)));
+    const { data: sessions } = await supa
+      .from("sessions")
+      .select("id, title, duration_minutes")
+      .in("id", sessionIds);
+
+    const sessionMeta = new Map(
+      (sessions ?? []).map((s) => [
+        s.id,
+        { title: s.title, dur: s.duration_minutes },
+      ])
+    );
+
     return (
       <div className="rounded-xl border bg-white p-5">
         <h3 className="font-semibold">Nächste Sessions</h3>
         <ul className="mt-3 divide-y">
-          {data.map((s) => (
-            <li key={s.id} className="py-3 flex items-center justify-between">
-              <div>
-                <p className="font-medium">{s.title ?? "Session"}</p>
-                <p className="text-xs text-slate-500">
-                  {new Date(s.start_at as string).toLocaleString()} •{" "}
-                  {s.duration_min ? `${s.duration_min} min` : "—"} •{" "}
-                  {s.location_name ?? "—"}
-                </p>
-              </div>
-              <Link
-                className="text-sm rounded-md border px-3 py-1 hover:bg-slate-50"
-                href={`/dashboard/studiohost/sessions/${s.id}`}
-              >
-                Details
-              </Link>
-            </li>
-          ))}
+          {occ.map((o) => {
+            const meta = sessionMeta.get(o.session_id);
+            const slotLocId = slotLocById.get(o.studio_slot_id!);
+            const locTitle = slotLocId
+              ? locationTitleById.get(slotLocId)
+              : undefined;
+            return (
+              <li key={o.id} className="py-3 flex items-center justify-between">
+                <div>
+                  <p className="font-medium">{meta?.title ?? "Session"}</p>
+                  <p className="text-xs text-slate-500">
+                    {new Date(o.starts_at).toLocaleString()}{" "}
+                    {meta?.dur ? `• ${meta.dur} min` : ""}{" "}
+                    {locTitle ? `• ${locTitle}` : ""}
+                  </p>
+                </div>
+                <Link
+                  className="text-sm rounded-md border px-3 py-1 hover:bg-slate-50"
+                  href={`/dashboard/studiohost/sessions/${o.session_id}`}
+                >
+                  Details
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       </div>
     );
@@ -286,7 +388,7 @@ async function UpcomingSessions({ uid }: { uid: string }) {
     return (
       <div className="rounded-xl border bg-white p-5">
         <p className="text-sm text-slate-600">
-          Sessions-Tabelle noch nicht verfügbar.
+          Daten nicht verfügbar (Locations/Slots/Occurrences/Sessions).
         </p>
       </div>
     );

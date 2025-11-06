@@ -18,18 +18,25 @@ export default function OnboardingForm({
   uid,
   children,
 }: Props) {
-  const wrappedSaveAndFinish = async (
+  // EIN Wrapper mit Fehlerbehandlung
+  const submitReducer = async (
     _state: OnboardingState,
     formData: FormData
   ): Promise<OnboardingState> => {
-    await saveAndFinishAction(formData);
-    return { ok: true, error: "" };
+    try {
+      await saveAndFinishAction(formData);
+      return { ok: true, error: "" };
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Unbekannter Fehler";
+      return { ok: false, error: msg };
+    }
   };
 
   const [state, formAction] = useActionState<OnboardingState, FormData>(
-    wrappedSaveAndFinish,
+    submitReducer,
     { ok: false, error: "" }
   );
+
   const [avatarUrl, setAvatarUrl] = useState<string | undefined>(
     defaultValues.avatar_url
   );
@@ -37,7 +44,6 @@ export default function OnboardingForm({
   return (
     <form action={formAction} className="relative space-y-4 p-20">
       <PendingOverlay text="Account wird gespeichert…" />
-
       <input type="hidden" name="uid" value={uid} />
 
       <div className="space-y-1">
@@ -68,11 +74,9 @@ export default function OnboardingForm({
           initialUrl={defaultValues.avatar_url}
           onUploaded={(url) => setAvatarUrl(url)}
         />
-        {/* Hidden field: wird in Server Action gespeichert */}
         <input type="hidden" name="avatar_url" value={avatarUrl || ""} />
       </div>
 
-      {/* Rollenspezifische Felder */}
       {children}
 
       {state?.error ? (
@@ -91,6 +95,7 @@ function SubmitButton({ children }: { children: React.ReactNode }) {
       type="submit"
       disabled={pending}
       className="w-full rounded-md bg-yuvi-rose px-4 py-2 font-semibold text-white disabled:opacity-60"
+      aria-busy={pending}
     >
       {pending ? "Speichern…" : children}
     </button>
@@ -109,6 +114,7 @@ function PendingOverlay({ text }: { text: string }) {
           height="18"
           viewBox="0 0 24 24"
           role="status"
+          aria-label="Lädt"
         >
           <circle
             cx="12"

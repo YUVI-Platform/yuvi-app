@@ -1,8 +1,9 @@
+// app/(protected)/components/bookOccurrenceAction.ts
 "use server";
 
-import { supabaseServerRead } from "@/lib/supabaseServer";
 import { revalidatePath } from "next/cache";
-import type { TablesInsert } from "@/types/supabase";
+import { supabaseServerRead } from "@/lib/supabaseServer";
+import type { TablesInsert, Enums } from "@/types/supabase";
 
 export async function bookOccurrenceAction(formData: FormData) {
   const occurrenceId = formData.get("occurrenceId");
@@ -11,27 +12,21 @@ export async function bookOccurrenceAction(formData: FormData) {
   }
 
   const supa = await supabaseServerRead();
-  const { data: auth } = await supa.auth.getUser();
-  const uid = auth?.user?.id;
-  if (!uid) throw new Error("Not authenticated");
-
-  // optional: Plätze prüfen (deine RPC gibt number zurück)
-  const { data: seatsLeft } = await supa.rpc("seats_left", {
-    p_occurrence: occurrenceId,
-  });
-  if (typeof seatsLeft === "number" && seatsLeft <= 0) {
-    throw new Error("Keine Plätze mehr frei");
+  const { data: userRes, error: authErr } = await supa.auth.getUser();
+  if (authErr || !userRes?.user) {
+    throw new Error("Not authenticated");
   }
 
   const newBooking: TablesInsert<"bookings"> = {
-    athlete_user_id: uid,
     occurrence_id: occurrenceId,
-    status: "pending",
-    payment: "none",
+    athlete_user_id: userRes.user.id,
+    status: "pending" satisfies Enums<"booking_status">,
+    payment: "none" satisfies Enums<"payment_status">,
   };
 
   const { error } = await supa.from("bookings").insert(newBooking);
   if (error) throw new Error(error.message);
 
+  // UI aktualisieren (Pfad ggf. anpassen)
   revalidatePath("/(protected)/dashboard");
 }

@@ -11,8 +11,6 @@ import {
 
 export const dynamic = "force-dynamic";
 
-type Role = "athlete" | "motionExpert" | "studioHost" | "admin";
-
 // Für Typsicherheit ohne `any`
 type Supa = Awaited<ReturnType<typeof supabaseServerRead>>;
 
@@ -45,8 +43,6 @@ export default async function MotionExpertOverviewPage() {
     getMotionExpertProfile(supa, user.id),
     getCountsSafe(supa, user.id),
   ]);
-
-  const emptyState = (counts.sessionsCount ?? 0) === 0;
 
   return (
     <div className="space-y-8">
@@ -129,6 +125,23 @@ export default async function MotionExpertOverviewPage() {
       {/* Nächste Sessions */}
       <UpcomingSessions uid={user.id} />
 
+      {(counts.sessionsCount ?? 0) === 0 && (
+        <div className="rounded-xl border bg-white p-5">
+          <h3 className="font-semibold">Noch keine kommenden Sessions</h3>
+          <p className="mt-1 text-sm text-slate-600">
+            Lege deine erste Session an, um loszulegen.
+          </p>
+          <div className="mt-3">
+            <Link
+              href="/dashboard/motionexpert/sessions/new"
+              className="inline-block rounded-md bg-black px-3 py-2 text-sm text-white hover:bg-black/90"
+            >
+              Neue Session erstellen
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* Offene Buchungen */}
       <PendingBookings uid={user.id} />
     </div>
@@ -178,16 +191,19 @@ async function getMotionExpertProfile(
   stateLabel: string;
 }> {
   try {
+    // Fix: richtige Spalten
     const { data } = await supa
       .from("motion_expert_profiles")
-      .select("license_id, specialties")
+      .select("licenses, training_focus")
       .eq("user_id", uid)
       .maybeSingle();
 
     const hasLicense =
-      !!data?.license_id && String(data.license_id).trim().length > 0;
+      Array.isArray(data?.licenses) && data!.licenses!.length > 0;
+
+    // "specialties" = training_focus in deinem Schema
     const hasSpecialties =
-      Array.isArray(data?.specialties) && data!.specialties!.length > 0;
+      Array.isArray(data?.training_focus) && data!.training_focus!.length > 0;
 
     const needsAttention = !hasLicense || !hasSpecialties;
 
@@ -197,7 +213,6 @@ async function getMotionExpertProfile(
 
     return { hasLicense, hasSpecialties, needsAttention, stateLabel };
   } catch {
-    // Tabelle evtl. noch nicht angelegt
     return {
       hasLicense: false,
       hasSpecialties: false,
@@ -206,7 +221,6 @@ async function getMotionExpertProfile(
     };
   }
 }
-
 async function getCountsSafe(
   supa: Supa,
   uid: string
@@ -221,7 +235,7 @@ async function getCountsSafe(
   let sessionsCount: number | null = null;
   let pendingBookingsCount: number | null = null;
 
-  // Locations, die dieser Expert hostet (optional – falls du diese Relation nutzt)
+  // A) Locations des Experts
   try {
     const { count, error } = await supa
       .from("studio_locations")
@@ -233,28 +247,61 @@ async function getCountsSafe(
     errors.push("studio_locations");
   }
 
-  // Kommende Sessions dieses Experts
+  // B) Alle Sessions des Experts (IDs holen)
+  let sessionIds: string[] = [];
   try {
-    const { count, error } = await supa
+    const { data, error } = await supa
       .from("sessions")
-      .select("*", { count: "exact", head: true })
-      .eq("host_user_id", uid)
-      .gte("start_at", new Date().toISOString());
+      .select("id")
+      .eq("expert_user_id", uid);
     if (error) throw error;
-    sessionsCount = count ?? 0;
+    sessionIds = (data ?? []).map((s) => s.id);
   } catch {
     errors.push("sessions");
   }
 
-  // Offene Buchungen
+  // C) Kommende Occurrences für diese Sessions zählen
   try {
-    const { count, error } = await supa
-      .from("bookings")
-      .select("*", { count: "exact", head: true })
-      .eq("host_user_id", uid)
-      .in("status", ["pending", "requested"]);
-    if (error) throw error;
-    pendingBookingsCount = count ?? 0;
+    if (sessionIds.length) {
+      const { count, error } = await supa
+        .from("session_occurrences")
+        .select("*", { count: "exact", head: true })
+        .in("session_id", sessionIds)
+        .gte("starts_at", new Date().toISOString());
+      if (error) throw error;
+      sessionsCount = count ?? 0; // "kommende Sessions" = kommende Occurrences
+    } else {
+      sessionsCount = 0;
+    }
+  } catch {
+    errors.push("session_occurrences");
+  }
+
+  // D) Offene Buchungen zählen (pending) für diese Occurrences
+  try {
+    if (sessionIds.length) {
+      // erst Occurrence-IDs holen (ohne head, nur IDs)
+      const { data: occList, error: occErr } = await supa
+        .from("session_occurrences")
+        .select("id")
+        .in("session_id", sessionIds);
+      if (occErr) throw occErr;
+      const occIds = (occList ?? []).map((o) => o.id);
+
+      if (occIds.length) {
+        const { count, error } = await supa
+          .from("bookings")
+          .select("*", { count: "exact", head: true })
+          .in("occurrence_id", occIds)
+          .eq("status", "pending"); // "requested" gibt es nicht in deinem Enum
+        if (error) throw error;
+        pendingBookingsCount = count ?? 0;
+      } else {
+        pendingBookingsCount = 0;
+      }
+    } else {
+      pendingBookingsCount = 0;
+    }
   } catch {
     errors.push("bookings");
   }
@@ -264,16 +311,40 @@ async function getCountsSafe(
 
 async function UpcomingSessions({ uid }: { uid: string }) {
   const supa = await supabaseServerRead();
+
   try {
-    const { data } = await supa
+    // Sessions des Experts inkl. Title/Dauer holen (Map bauen)
+    const { data: sessions } = await supa
       .from("sessions")
-      .select("id, title, start_at, duration_min, location_name")
-      .eq("host_user_id", uid)
-      .gte("start_at", new Date().toISOString())
-      .order("start_at", { ascending: true })
+      .select("id, title, duration_minutes")
+      .eq("expert_user_id", uid);
+
+    const titleBySession = new Map(
+      (sessions ?? []).map((s) => [
+        s.id,
+        { title: s.title, dur: s.duration_minutes },
+      ])
+    );
+    const sessionIds = (sessions ?? []).map((s) => s.id);
+
+    if (!sessionIds.length) {
+      return (
+        <div className="rounded-xl border bg-white p-5">
+          <p className="text-sm text-slate-600">Keine kommenden Sessions.</p>
+        </div>
+      );
+    }
+
+    // Nächste 5 Occurrences dieser Sessions
+    const { data: occ } = await supa
+      .from("session_occurrences")
+      .select("id, session_id, starts_at, ends_at, capacity")
+      .in("session_id", sessionIds)
+      .gte("starts_at", new Date().toISOString())
+      .order("starts_at", { ascending: true })
       .limit(5);
 
-    if (!data || data.length === 0) {
+    if (!occ || occ.length === 0) {
       return (
         <div className="rounded-xl border bg-white p-5">
           <p className="text-sm text-slate-600">Keine kommenden Sessions.</p>
@@ -285,24 +356,28 @@ async function UpcomingSessions({ uid }: { uid: string }) {
       <div className="rounded-xl border bg-white p-5">
         <h3 className="font-semibold">Nächste Sessions</h3>
         <ul className="mt-3 divide-y">
-          {data.map((s) => (
-            <li key={s.id} className="flex items-center justify-between py-3">
-              <div>
-                <p className="font-medium">{s.title ?? "Session"}</p>
-                <p className="text-xs text-slate-500">
-                  {new Date(s.start_at as string).toLocaleString()} •{" "}
-                  {s.duration_min ? `${s.duration_min} min` : "—"} •{" "}
-                  {s.location_name ?? "—"}
-                </p>
-              </div>
-              <Link
-                className="text-sm rounded-md border px-3 py-1 hover:bg-slate-50"
-                href={`/dashboard/motionexpert/sessions/${s.id}`}
-              >
-                Details
-              </Link>
-            </li>
-          ))}
+          {occ.map((o) => {
+            const meta = titleBySession.get(o.session_id);
+            const title = meta?.title ?? "Session";
+            const dur = meta?.dur;
+            return (
+              <li key={o.id} className="flex items-center justify-between py-3">
+                <div>
+                  <p className="font-medium">{title}</p>
+                  <p className="text-xs text-slate-500">
+                    {new Date(o.starts_at).toLocaleString()}{" "}
+                    {dur ? `• ${dur} min` : ""} • Kapazität {o.capacity}
+                  </p>
+                </div>
+                <Link
+                  className="text-sm rounded-md border px-3 py-1 hover:bg-slate-50"
+                  href={`/dashboard/motionexpert/sessions/${o.session_id}`}
+                >
+                  Details
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       </div>
     );
@@ -310,7 +385,7 @@ async function UpcomingSessions({ uid }: { uid: string }) {
     return (
       <div className="rounded-xl border bg-white p-5">
         <p className="text-sm text-slate-600">
-          Sessions-Tabelle noch nicht verfügbar.
+          Sessions-/Occurrences-Tabellen noch nicht verfügbar.
         </p>
       </div>
     );
@@ -319,16 +394,51 @@ async function UpcomingSessions({ uid }: { uid: string }) {
 
 async function PendingBookings({ uid }: { uid: string }) {
   const supa = await supabaseServerRead();
+
   try {
-    const { data } = await supa
+    // Sessions des Experts -> Occurrences -> Bookings(pending)
+    const { data: sessions } = await supa
+      .from("sessions")
+      .select("id, title")
+      .eq("expert_user_id", uid);
+
+    const sessionIds = (sessions ?? []).map((s) => s.id);
+    const titleBySession = new Map(
+      (sessions ?? []).map((s) => [s.id, s.title])
+    );
+
+    if (!sessionIds.length) {
+      return (
+        <div className="rounded-xl border bg-white p-5">
+          <p className="text-sm text-slate-600">Keine offenen Buchungen.</p>
+        </div>
+      );
+    }
+
+    const { data: occ } = await supa
+      .from("session_occurrences")
+      .select("id, session_id, starts_at")
+      .in("session_id", sessionIds);
+    const occById = new Map((occ ?? []).map((o) => [o.id, o]));
+
+    const occIds = (occ ?? []).map((o) => o.id);
+    if (!occIds.length) {
+      return (
+        <div className="rounded-xl border bg-white p-5">
+          <p className="text-sm text-slate-600">Keine offenen Buchungen.</p>
+        </div>
+      );
+    }
+
+    const { data: bookings } = await supa
       .from("bookings")
-      .select("id, status, created_at, session_title, athlete_name")
-      .eq("host_user_id", uid)
-      .in("status", ["pending", "requested"])
+      .select("id, status, created_at, occurrence_id, athlete_user_id")
+      .in("occurrence_id", occIds)
+      .eq("status", "pending")
       .order("created_at", { ascending: false })
       .limit(5);
 
-    if (!data || data.length === 0) {
+    if (!bookings || bookings.length === 0) {
       return (
         <div className="rounded-xl border bg-white p-5">
           <p className="text-sm text-slate-600">Keine offenen Buchungen.</p>
@@ -340,33 +450,36 @@ async function PendingBookings({ uid }: { uid: string }) {
       <div className="rounded-xl border bg-white p-5">
         <h3 className="font-semibold">Offene Buchungen</h3>
         <ul className="mt-3 divide-y">
-          {data.map((b) => (
-            <li key={b.id} className="flex items-center justify-between py-3">
-              <div>
-                <p className="font-medium">{b.session_title ?? "Session"}</p>
-                <p className="text-xs text-slate-500">
-                  {b.athlete_name ?? "Athlet:in"} •{" "}
-                  {new Date(b.created_at as string).toLocaleString()} •{" "}
-                  {b.status}
-                </p>
-              </div>
-              <Link
-                className="text-sm rounded-md border px-3 py-1 hover:bg-slate-50"
-                href={`/dashboard/motionexpert/bookings/${b.id}`}
-              >
-                Öffnen
-              </Link>
-            </li>
-          ))}
+          {bookings.map((b) => {
+            const occ = occById.get(b.occurrence_id);
+            const title = occ
+              ? titleBySession.get(occ.session_id) ?? "Session"
+              : "Session";
+            return (
+              <li key={b.id} className="flex items-center justify-between py-3">
+                <div>
+                  <p className="font-medium">{title}</p>
+                  <p className="text-xs text-slate-500">
+                    {new Date(b.created_at as string).toLocaleString()} •{" "}
+                    {b.status}
+                  </p>
+                </div>
+                <Link
+                  className="text-sm rounded-md border px-3 py-1 hover:bg-slate-50"
+                  href={`/dashboard/motionexpert/bookings/${b.id}`}
+                >
+                  Öffnen
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       </div>
     );
   } catch {
     return (
       <div className="rounded-xl border bg-white p-5">
-        <p className="text-sm text-slate-600">
-          Bookings-Tabelle noch nicht verfügbar.
-        </p>
+        <p className="text-sm text-slate-600">Bookings nicht verfügbar.</p>
       </div>
     );
   }

@@ -1,19 +1,20 @@
 // app/admin/invites/ui/InviteList.tsx
 "use client";
-
+import type { Enums } from "@/types/supabase";
 import { toggleInvite, deleteInvite } from "../actions";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/badge";
 import { useTransition } from "react";
 
-type Invite = {
+export type Invite = {
   code: string;
-  role: "athlete" | "motionExpert" | "studioHost";
-  max_uses: number;
-  used_count: number;
-  is_active: boolean;
-  created_at: string | null;
+  role: Enums<"role_type">; // <- enthält "admin"
+  email: string | null;
+  max_uses: number | null;
+  used_count: number | null;
+  is_active: boolean | null;
   expires_at: string | null;
+  created_at: string | null;
 };
 
 export default function InviteList({ invites }: { invites: Invite[] }) {
@@ -35,7 +36,12 @@ export default function InviteList({ invites }: { invites: Invite[] }) {
           const expired = !!(
             i.expires_at && new Date(i.expires_at) < new Date()
           );
-          const usable = i.used_count < i.max_uses && !expired && i.is_active;
+          const usedCount = i.used_count ?? 0;
+          const maxUses = i.max_uses;
+          const usable =
+            (maxUses == null || usedCount < maxUses) &&
+            !expired &&
+            !!i.is_active;
 
           return (
             <div

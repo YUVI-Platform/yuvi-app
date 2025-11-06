@@ -1,24 +1,87 @@
 "use server";
 
+import type { TablesInsert } from "@/types/supabase";
 import { revalidatePath } from "next/cache";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { z } from "zod";
 
+/* ---------- Helpers ---------- */
+
+// TODO: später echte Ownership/RLS prüfen
+async function ensureOwner(location_id: string) {
+  if (!location_id) throw new Error("location_id missing");
+  return;
+}
+
+/** 'YYYY-MM-DDTHH:mm' -> Date (lokale TZ) */
+function localDateTimeToDate(s: string) {
+  const d = new Date(s);
+  if (Number.isNaN(+d)) throw new Error("Ungültiges Datum");
+  return d;
+}
+
+type SlotInsert = TablesInsert<"studio_slots">;
+
+async function getDefaults(location_id: string) {
+  const { data, error } = await supabaseAdmin
+    .from("studio_locations")
+    .select("max_participants, allowed_tags, price_per_slot")
+    .eq("id", location_id)
+    .maybeSingle();
+
+  if (error || !data)
+    throw new Error(error?.message || "Location nicht gefunden");
+
+  return {
+    capacity: data.max_participants ?? 0,
+    allowed_tags: data.allowed_tags ?? [],
+    price_per_slot: data.price_per_slot ?? null, // nur Info; nicht in Slot schreiben
+  };
+}
+
+/* ---------- Einzel-Slot ---------- */
+
+export async function createSingleSlot(formData: FormData) {
+  const location_id = String(formData.get("location_id") ?? "");
+  const starts_raw = String(formData.get("starts_at") ?? "");
+  await ensureOwner(location_id);
+
+  const start = localDateTimeToDate(starts_raw);
+  const end = new Date(+start + 60 * 60 * 1000); // 60 Min
+
+  const defs = await getDefaults(location_id);
+
+  const row: SlotInsert = {
+    location_id,
+    starts_at: start.toISOString(),
+    ends_at: end.toISOString(),
+    capacity: defs.capacity,
+    allowed_tags: defs.allowed_tags?.length ? defs.allowed_tags : null,
+    status: "available",
+  };
+
+  const { error } = await supabaseAdmin.from("studio_slots").insert(row);
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/dashboard/studioHost/locations/${location_id}/slots`);
+  revalidatePath(`/dashboard/studioHost/locations/${location_id}`);
+  return { ok: true as const };
+}
+
+/* ---------- Wiederkehrende Slots ---------- */
+
 const DATETIME_LOCAL = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/; // "2025-11-04T09:00"
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/; // "2025-11-30"
 
-/** Zod: akzeptiert 'YYYY-MM-DDTHH:mm' (ohne Z) vom <input type="datetime-local"> */
 const recurSchema = z
   .object({
     location_id: z.string().uuid(),
-    // akzeptiert datetime-local aus <input type="datetime-local">
     first_starts_at: z
       .string()
       .regex(DATETIME_LOCAL, "Invalid datetime-local (YYYY-MM-DDTHH:mm)"),
     byweekday: z
       .array(z.enum(["MO", "TU", "WE", "TH", "FR", "SA", "SU"]))
       .min(1, "Mind. ein Wochentag"),
-    // für <input type="date">
     until_date: z
       .string()
       .regex(DATE_ONLY, "Invalid date (YYYY-MM-DD)")
@@ -40,73 +103,6 @@ const WD: Record<string, number> = {
 };
 const weekdayToNum = (w: string) => WD[w] ?? -1;
 
-/** Browser-lokalen datetime-local String in Date wandeln */
-function localDateTimeToDate(s: string) {
-  // '2025-11-04T09:00' -> Date in lokaler TZ, dann als UTC benutzen
-  const d = new Date(s);
-  if (Number.isNaN(+d)) throw new Error("Ungültiges Datum");
-  return d;
-}
-
-// TODO: Implement ownership check
-async function ensureOwner(location_id: string) {
-  if (!location_id) throw new Error("location_id missing");
-  // (Optional) hier später Ownership via RLS/Supabase prüfen
-  return;
-}
-
-type SlotStatus = "available" | "blocked" | "reserved";
-
-type SlotInsert = {
-  location_id: string;
-  starts_at: string; // ISO
-  ends_at: string; // ISO
-  capacity: number;
-  allowed_tags: string[];
-  status: SlotStatus;
-};
-
-async function getDefaults(location_id: string) {
-  const { data, error } = await supabaseAdmin
-    .from("studio_locations")
-    .select("max_participants, allowed_tags, price_per_slot")
-    .eq("id", location_id)
-    .maybeSingle();
-  if (error || !data)
-    throw new Error(error?.message || "Location nicht gefunden");
-  return {
-    capacity: data.max_participants ?? 0,
-    allowed_tags: data.allowed_tags ?? [],
-    price_per_slot: data.price_per_slot ?? null, // nur Anzeige, NICHT mehr im Slot
-  };
-}
-
-export async function createSingleSlot(formData: FormData) {
-  const location_id = String(formData.get("location_id") ?? "");
-  const starts_raw = String(formData.get("starts_at") ?? "");
-  await ensureOwner(location_id);
-
-  const start = localDateTimeToDate(starts_raw);
-  const end = new Date(+start + 60 * 60 * 1000); // 60 min fix
-
-  // Defaults holen für Kapazität/Tags
-  const defs = await getDefaults(location_id);
-
-  const { error } = await supabaseAdmin.from("studio_slots").insert({
-    location_id,
-    starts_at: start.toISOString(),
-    ends_at: end.toISOString(),
-    capacity: defs.capacity,
-    allowed_tags: defs.allowed_tags,
-    status: "available",
-  });
-  if (error) throw new Error(error.message);
-
-  revalidatePath(`/dashboard/studioHost/locations/${location_id}/slots`);
-  revalidatePath(`/dashboard/studioHost/locations/${location_id}`);
-  return { ok: true as const };
-}
-
 export async function createRecurringSlots(formData: FormData) {
   const location_id = String(formData.get("location_id") ?? "");
   const first_starts_at = String(formData.get("first_starts_at") ?? "");
@@ -114,7 +110,7 @@ export async function createRecurringSlots(formData: FormData) {
   const countRaw = formData.get("count");
   const byweekday = formData.getAll("byweekday").map(String);
 
-  // Default-Count 12, wenn weder Enddatum noch Count gesetzt ist
+  // Default: wenn kein Enddatum → 12 Vorkommen
   const countNormalized =
     (countRaw ? Number(countRaw) : undefined) ?? (!until_date ? 12 : undefined);
 
@@ -130,9 +126,9 @@ export async function createRecurringSlots(formData: FormData) {
   const defs = await getDefaults(parsed.location_id);
 
   const firstStart = localDateTimeToDate(parsed.first_starts_at);
-  const durMs = 60 * 60 * 1000; // 60 min fix
+  const durMs = 60 * 60 * 1000; // 60 Min
   const endDate = parsed.until_date
-    ? new Date(parsed.until_date + "T23:59:59") // bis Tagesende
+    ? new Date(parsed.until_date + "T23:59:59")
     : null;
   const maxCount = parsed.count ?? 200;
 
@@ -178,7 +174,7 @@ export async function createRecurringSlots(formData: FormData) {
           starts_at: start.toISOString(),
           ends_at: end.toISOString(),
           capacity: defs.capacity,
-          allowed_tags: defs.allowed_tags,
+          allowed_tags: defs.allowed_tags?.length ? defs.allowed_tags : null,
           status: "available",
         });
         produced++;
@@ -186,7 +182,7 @@ export async function createRecurringSlots(formData: FormData) {
     }
     cursor.setDate(cursor.getDate() + 1);
     if (!endDate && produced >= maxCount) break;
-    if (rows.length > 1000) break;
+    if (rows.length > 1000) break; // einfache Kappung
   }
 
   let ok = 0,
@@ -194,7 +190,7 @@ export async function createRecurringSlots(formData: FormData) {
   for (const row of rows) {
     const { error } = await supabaseAdmin.from("studio_slots").insert(row);
     if (error) {
-      // optional: Constraint (no_overlap) o.Ä. abfangen
+      // Falls du einen "no_overlap" Constraint hast
       if (error.message?.toLowerCase().includes("no_overlap")) {
         skipped++;
         continue;
@@ -208,6 +204,8 @@ export async function createRecurringSlots(formData: FormData) {
   revalidatePath(`/dashboard/studioHost/locations/${parsed.location_id}`);
   return { ok: true as const, created: ok, skipped };
 }
+
+/* ---------- Mutationen für bestehende Slots ---------- */
 
 export async function deleteSlot(formData: FormData) {
   const id = String(formData.get("id") ?? "");

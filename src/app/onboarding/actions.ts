@@ -4,6 +4,8 @@
 import { redirect } from "next/navigation";
 import { supabaseServerAction, supabaseServerRead } from "@/lib/supabaseServer";
 
+export type OnboardingState = { ok: boolean; error: string };
+
 /**
  * Hilfen
  */
@@ -53,40 +55,39 @@ export async function saveAndFinishAction(formData: FormData): Promise<void> {
   const nowIso = new Date().toISOString();
   const supa = await supabaseServerAction();
 
-  // 1) profiles upsert – Versuch 1
-  let { error: upsertErr } = await supa.from("profiles").upsert(
-    {
-      user_id: uid,
-      name: name || null,
-      alias: aliasCandidate || null,
-      email, // <- wichtig für NOT NULL
-      avatar_url: avatar_url || null,
-      onboarding_done: true,
-      onboarding_completed_at: nowIso,
-      updated_at: nowIso,
-    },
-    { onConflict: "user_id" }
-  );
+  // 1) profiles upsert – immer Strings für non-null Felder, optional = undefined
+  const safeName =
+    name ||
+    aliasCandidate ||
+    (email.includes("@") ? email.split("@")[0] : "User");
 
-  // 1b) Fallback bei Alias-Kollision
+  const basePayload = {
+    user_id: uid, // string (required)
+    name: safeName, // string (required, nie null)
+    alias: aliasCandidate || undefined, // optional -> undefined statt null
+    email, // string (required)
+    avatar_url: avatar_url || undefined, // optional -> undefined statt null
+    onboarding_done: true,
+    onboarding_completed_at: nowIso,
+    updated_at: nowIso,
+  };
+
+  let { error: upsertErr } = await supa
+    .from("profiles")
+    .upsert(basePayload, { onConflict: "user_id" });
+
+  // 1b) Fallback bei Alias-Kollision (unique constraint)
   if (upsertErr && /profiles_.*alias.*key/i.test(upsertErr.message)) {
     const aliasFallback = (
       aliasCandidate ? `${aliasCandidate}-${uid.slice(0, 6)}` : uid.slice(0, 6)
     ).toLowerCase();
 
-    const retry = await supa.from("profiles").upsert(
-      {
-        user_id: uid,
-        name: name || null,
-        alias: aliasFallback,
-        email,
-        avatar_url: avatar_url || null,
-        onboarding_done: true,
-        onboarding_completed_at: nowIso,
-        updated_at: nowIso,
-      },
-      { onConflict: "user_id" }
-    );
+    const retry = await supa
+      .from("profiles")
+      .upsert(
+        { ...basePayload, alias: aliasFallback },
+        { onConflict: "user_id" }
+      );
 
     upsertErr = retry.error ?? null;
   }
@@ -190,18 +191,23 @@ async function saveByRole(formData: FormData, nowIso: string): Promise<void> {
 
   if (role === "studioHost") {
     // studio_host_profiles(user_id, company, phone, updated_at)
+    // inside saveByRole() -> role === "studioHost"
     const company = String(formData.get("company") || "").trim();
     const phone = String(formData.get("phone") || "").trim();
 
+    // company ist required(string) -> immer einen String schicken
+    const safeCompany = company || "—"; // oder "Solo Host", was dir lieber ist
+
     const { error } = await supa.from("studio_host_profiles").upsert(
       {
-        user_id: uid,
-        company: company || null,
-        phone: phone || null,
-        updated_at: nowIso,
+        user_id: uid, // required string
+        company: safeCompany, // <- nie null
+        phone: phone || null, // optional (string | null erlaubt)
+        updated_at: nowIso, // optional string
       },
       { onConflict: "user_id" }
     );
+
     if (error) throw new Error(error.message);
     return;
   }

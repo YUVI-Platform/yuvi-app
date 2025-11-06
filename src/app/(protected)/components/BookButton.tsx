@@ -1,6 +1,6 @@
 // app/(protected)/components/BookButton.tsx
 import SubmitButton from "./SubmitButton";
-import { bookOccurrenceAction } from "../dashboard/athlete/occ/[id]/actions";
+import { bookOccurrenceAction } from "./bookOccurrenceAction";
 
 export default function BookButton({ occurrenceId }: { occurrenceId: string }) {
   return (

@@ -10,7 +10,7 @@ import StudioAvailabilityStep from "./StudioHost/StudioAvailabliltyStep";
 import { StudioRulesStep } from "./StudioHost/StudioRulesStep";
 import { PhotoUploadStep } from "./SharedStepps/PhotoUploadStep";
 import { SummaryStep } from "./SharedStepps/PreviewStep";
-import { CoursePricingModellStep } from "./MotionExpert/CoursePricingModellStep";
+
 // import { CompletionStep } from "./SharedStepps/ComplitionStep";
 
 import { Check, CheckCircle } from "feather-icons-react";
@@ -117,9 +117,9 @@ const getStepsForRole = (
   }
 };
 
-const {
-  data: { user },
-} = await superbase.auth.getUser();
+// const {
+//   data: { user },
+// } = await superbase.auth.getUser();
 
 // MAIN FORM COMPONENT
 export const MultiStepForm = ({ role }: { role: Role }) => {
@@ -217,12 +217,12 @@ export const MultiStepForm = ({ role }: { role: Role }) => {
     return true;
   };
 
-  // Fallback bei gelöschtem Step:
-  useEffect(() => {
-    if (currentStepIndex >= steps.length) {
-      setCurrentStepIndex(steps.length - 1);
-    }
-  }, [steps.length, currentStepIndex]);
+  // // Fallback bei gelöschtem Step:
+  // useEffect(() => {
+  //   if (currentStepIndex >= steps.length) {
+  //     setCurrentStepIndex(steps.length - 1);
+  //   }
+  // }, [steps.length, currentStepIndex]);
 
   return (
     <div className="relative grid grid-cols-[300px_800px] min-h-[800px] bg-white overflow-hidden rounded-4xl shadow-lg p-8">
@@ -293,20 +293,20 @@ export const MultiStepForm = ({ role }: { role: Role }) => {
 
           <button
             className="flex justify-center items-center bg-indigo-400 p-4 rounded-2xl cursor-pointer text-yuvi-white hover:bg-fuchsia-300 hover:text-white transition-all"
-            onClick={
-              currentStepIndex === steps.length - 1
-                ? async () => {
-                    // Replace with actual userId retrieval logic
-                    const userId = user?.id;
-                    if (!userId) {
-                      console.error("User ID not found. Cannot submit form.");
-                      return;
-                    }
-                    console.log("Submitting form with data:", formData);
-                    await handleSubmit(formData, userId);
-                  }
-                : nextStep
-            }
+            // onClick={
+            //   currentStepIndex === steps.length - 1
+            //     ? async () => {
+            //         // Replace with actual userId retrieval logic
+            //         const userId = user?.id;
+            //         if (!userId) {
+            //           console.error("User ID not found. Cannot submit form.");
+            //           return;
+            //         }
+            //         console.log("Submitting form with data:", formData);
+            //         await handleSubmit(formData, userId);
+            //       }
+            //     : nextStep
+            // }
           >
             {currentStepIndex === 0 && "Los gehts"}
             {currentStepIndex !== 0 &&
