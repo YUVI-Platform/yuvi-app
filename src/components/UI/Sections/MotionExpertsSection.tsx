@@ -1,7 +1,6 @@
 import { motionExpertTestData } from "@/testdata/motionExpertData";
 import React from "react";
 import Image from "next/image";
-import StarRating from "../Cards/StarRating";
 
 const MotionExpertsSection = () => {
   const randomIndex = Math.floor(Math.random() * 4);
@@ -78,8 +77,6 @@ const MotionExpertsSection = () => {
             </span>{" "}
             kennen!
           </h2>
-
-          <StarRating rating={expert.rating} />
 
           <p className="text-slate-600 text-base sm:text-lg">
             {expert.description}

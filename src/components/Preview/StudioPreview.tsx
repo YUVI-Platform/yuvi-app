@@ -5,7 +5,6 @@ import { fetchAllStudios } from "@/utils/supabase/getStudios";
 import { useEffect, useState } from "react";
 
 import { StudioProps } from "@/types/Studio";
-import StarRating from "../ui/Cards/StarRating";
 
 const StudioPreview = () => {
   const [studios, setStudios] = useState<StudioProps[]>([]);
@@ -38,7 +37,6 @@ const StudioPreview = () => {
             <h1 className="text-2xl font-bold">
               {studios?.[0]?.studio_name ?? "Studio"}
             </h1>
-            <StarRating value={studios?.[0]?.ratings?.stars ?? 4.5} />
           </div>
         </div>
         <p>

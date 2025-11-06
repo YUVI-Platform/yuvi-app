@@ -1,6 +1,5 @@
 import React from "react";
 import Image from "next/image";
-import StarRating from "./StarRating";
 
 interface TestimonialCardProps {
   name?: string;
@@ -14,13 +13,11 @@ const TestimonialCard = ({
   name,
   image,
   testimonial,
-  rating,
+
   type,
 }: TestimonialCardProps) => {
   return (
     <div className="flex flex-col justify-between shadow-lg border border-indigo-50 p-4 rounded-2xl aspect-video w-full md:w-96 gap-4">
-      <StarRating rating={rating} />
-
       <p className="line-clamp-4 text-gray-500">{testimonial}</p>
       <div className="flex gap-4 items-center">
         <div className="flex justify-center items-center h-12 w-12 bg-indigo-200 rounded-full overflow-hidden">

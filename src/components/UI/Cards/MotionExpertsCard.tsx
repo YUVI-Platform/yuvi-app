@@ -1,4 +1,3 @@
-import StarRating from "./StarRating";
 import Image from "next/image";
 import React from "react";
 
@@ -11,7 +10,7 @@ export interface MotionExpertCardProps {
 }
 const MotionExpertsCard = ({
   name,
-  rating,
+
   description,
   specialties,
   imageUrl,
@@ -30,7 +29,6 @@ const MotionExpertsCard = ({
         <h3 className="text-xl font-bold text-indigo-400 w-36 overflow-ellipsis whitespace-nowrap overflow-hidden flex-shrink-0">
           {name}
         </h3>
-        <StarRating rating={rating} />
       </div>
       <div className="w-full  p-2">
         <p className="text-gray-400 line-clamp-3 overflow-hidden">

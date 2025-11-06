@@ -2,7 +2,6 @@
 import Image from "next/image";
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import StarRating from "./StarRating";
 
 export type StudioCardProps = {
   name: string;
@@ -23,7 +22,7 @@ function StudioCard({
   availableFrom,
   availableTo,
   features = [],
-  rating = 0,
+
   imageUrl = "/placeholder.jpg",
   className,
 }: StudioCardProps) {
@@ -46,7 +45,6 @@ function StudioCard({
       <div className="space-y-2 p-4">
         <div className="flex items-start justify-between gap-2">
           <h3 className="text-base font-semibold">{name}</h3>
-          <StarRating value={rating} />
         </div>
         <p className="text-sm text-slate-600">{address}</p>
         <div className="text-xs text-slate-500">
