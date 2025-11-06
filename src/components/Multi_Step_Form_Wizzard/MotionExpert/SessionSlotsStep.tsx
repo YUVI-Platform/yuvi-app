@@ -3,7 +3,7 @@
 
 import { useState } from "react";
 import dayjs from "dayjs";
-import MultiStepFormDataTypes from "@/Types/MultiStepWizzardTypes";
+import MultiStepFormDataTypes from "@/types/MultiStepWizzardTypes";
 
 export const SessionSlotsStep = ({
   formData,

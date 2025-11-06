@@ -4,7 +4,7 @@ import { fetchAllStudios } from "@/utils/supabase/getStudios";
 
 import { useEffect, useState } from "react";
 
-import { StudioProps } from "@/Types/Studio";
+import { StudioProps } from "@/types/Studio";
 import StarRating from "../ui/Cards/StarRating";
 
 const StudioPreview = () => {

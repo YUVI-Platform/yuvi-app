@@ -174,12 +174,7 @@ function renderRoleFields(role: Role, values: RoleSpecificDefaults) {
           <div className="grid grid-cols-2 gap-2">
             {SPECIALTIES.map((s) => (
               <label key={s} className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  name="specialties"
-                  value={s}
-                  defaultChecked={selected.includes(s)}
-                />
+                <input type="checkbox" name="specialties" value={s} />
                 {s}
               </label>
             ))}

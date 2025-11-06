@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { User } from "feather-icons-react";
 import { DumbbellIcon, UserRoundIcon, UsersRoundIcon } from "lucide-react";
-import MultiStepFormDataTypes from "@/Types/MultiStepWizzardTypes";
+import MultiStepFormDataTypes from "@/types/MultiStepWizzardTypes";
 
 export interface CourseTypeProps {
   type: "Private Session" | "Group Session" | "Train With Me";

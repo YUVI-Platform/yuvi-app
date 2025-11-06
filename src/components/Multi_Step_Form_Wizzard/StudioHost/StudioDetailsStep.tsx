@@ -1,5 +1,5 @@
 "use client";
-import MultiStepFormDataTypes from "@/Types/MultiStepWizzardTypes";
+import MultiStepFormDataTypes from "@/types/MultiStepWizzardTypes";
 
 const amenitieOptions = [
   "Wifi",

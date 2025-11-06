@@ -1,4 +1,4 @@
-import { SideNavItemType } from "@/Types/Navigation";
+import { SideNavItemType } from "@/types/Navigation";
 import {
   BarChart,
   Calendar,

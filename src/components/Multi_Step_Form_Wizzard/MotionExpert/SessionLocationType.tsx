@@ -5,7 +5,7 @@
 import React, { useEffect, useState } from "react";
 import { User } from "feather-icons-react";
 import { HouseHeartIcon, MapPinIcon } from "lucide-react";
-import MultiStepFormDataTypes from "@/Types/MultiStepWizzardTypes";
+import MultiStepFormDataTypes from "@/types/MultiStepWizzardTypes";
 
 export interface SessionLocationTypeProps {
   type: "self-host" | "studio-host";

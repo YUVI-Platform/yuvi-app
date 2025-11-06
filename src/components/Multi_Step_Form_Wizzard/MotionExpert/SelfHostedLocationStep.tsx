@@ -1,6 +1,6 @@
 import Link from "next/link";
 import React from "react";
-import MultiStepFormDataTypes from "@/Types/MultiStepWizzardTypes";
+import MultiStepFormDataTypes from "@/types/MultiStepWizzardTypes";
 
 export const SelfHostedLocationStep = ({
   formData,

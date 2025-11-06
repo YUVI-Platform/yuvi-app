@@ -1,6 +1,6 @@
 "use client";
 
-import MultiStepFormDataTypes from "@/Types/MultiStepWizzardTypes";
+import MultiStepFormDataTypes from "@/types/MultiStepWizzardTypes";
 import { InfoIcon } from "lucide-react";
 import React, { useState } from "react";
 

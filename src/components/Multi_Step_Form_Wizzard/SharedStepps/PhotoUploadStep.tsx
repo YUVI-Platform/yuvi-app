@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import MultiStepFormDataTypes from "@/Types/MultiStepWizzardTypes";
+import MultiStepFormDataTypes from "@/types/MultiStepWizzardTypes";
 
 export const PhotoUploadStep = ({
   formData,

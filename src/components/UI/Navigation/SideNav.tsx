@@ -13,7 +13,7 @@ import {
   StudioHostSideNavData,
 } from "@/data/sideNavData";
 
-import { SideNavItemType } from "@/Types/Navigation";
+import { SideNavItemType } from "@/types/Navigation";
 
 export default function SideNav() {
   const { user } = useSupabaseUser();

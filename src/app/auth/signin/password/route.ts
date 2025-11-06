@@ -68,23 +68,47 @@ export async function POST(req: Request) {
     supaRead.from("user_roles").select("role").eq("user_id", userId),
   ]);
 
-  // Rollen sauber typisieren (ohne any)
+  // Rollen typisiert
   const roleRows: UserRoleRow[] = Array.isArray(roles)
     ? (roles as unknown as UserRoleRow[])
     : [];
-  const isAdmin = roleRows.some((r) => r.role === "admin");
+  const roleList = roleRows.map((r) => r.role);
+  const isAdmin = roleList.includes("admin");
+
+  // "primäre" Rolle bestimmen (bevorzugt Nicht-Admin)
+  const primaryRole: Role =
+    roleList.find((r) => r !== "admin") ?? roleList[0] ?? "athlete";
 
   const needsOnboarding = prof ? !prof.onboarding_done : true;
 
-  // Ziel bestimmen
-  let target = requested;
-  if (needsOnboarding && !requested.startsWith("/admin")) {
+  // role-basiertes Default-Ziel
+  const defaultAfterLogin: Record<Role, string> = {
+    athlete: "/dashboard/athlete/profile",
+    motionExpert: "/dashboard/motionexpert/profile",
+    studioHost: "/dashboard/studiohost/profile",
+    admin: "/admin/invites",
+  };
+
+  let target = requested || "/dashboard";
+
+  // 1) Onboarding erzwingen (außer Admin-Bereich)
+  if (needsOnboarding && !target.startsWith("/admin")) {
     target = "/onboarding";
   }
-  if (!isAdmin && requested.startsWith("/admin")) {
-    target = needsOnboarding ? "/onboarding" : "/dashboard";
+  // 2) Kein Admin, aber Admin-Bereich angefragt
+  else if (!isAdmin && target.startsWith("/admin")) {
+    target = needsOnboarding
+      ? "/onboarding"
+      : defaultAfterLogin[primaryRole] || "/dashboard/profile";
+  }
+  // 3) Onboarding ist fertig, aber /onboarding angefragt -> auf Rollen-Default
+  else if (!needsOnboarding && target.startsWith("/onboarding")) {
+    target = defaultAfterLogin[primaryRole] || "/dashboard/profile";
+  }
+  // 4) Onboarding ist fertig und /dashboard (oder /) angefragt -> auf Rollen-Default
+  else if (!needsOnboarding && (target === "/dashboard" || target === "/")) {
+    target = defaultAfterLogin[primaryRole] || "/dashboard/profile";
   }
 
-  // WICHTIG: 303, damit aus POST -> GET wird und keine POST-Schleife auf /onboarding entsteht
   return NextResponse.redirect(new URL(target, base), 303);
 }

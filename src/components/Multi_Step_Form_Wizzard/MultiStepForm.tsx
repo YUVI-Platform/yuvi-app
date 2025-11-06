@@ -21,7 +21,7 @@ import StudioDetailsStep from "./StudioHost/StudioDetailsStep";
 import { superbase } from "@/utils/supabase/superbaseClient";
 
 // IMPORT TYPES
-import MultiStepFormDataTypes from "@/Types/MultiStepWizzardTypes";
+import MultiStepFormDataTypes from "@/types/MultiStepWizzardTypes";
 
 import { uploadFilesToSupabase } from "@/utils/supabase/fileUpload";
 import { SessionSlotsStep } from "./MotionExpert/SessionSlotsStep";

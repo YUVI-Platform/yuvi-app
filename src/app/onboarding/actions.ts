@@ -1,54 +1,123 @@
+// src/app/onboarding/actions.ts
 "use server";
 
 import { redirect } from "next/navigation";
 import { supabaseServerAction, supabaseServerRead } from "@/lib/supabaseServer";
 
-export type OnboardingState = { ok: boolean; error?: string };
+/**
+ * Hilfen
+ */
+function sanitizeAlias(input: string): string {
+  const base = input
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, "-");
+  return base.replace(/^-+|-+$/g, "");
+}
 
-// Haupt-Speicher-Action für "Speichern & Fertig"
-export async function saveAndFinishAction(formData: FormData) {
+function getAllStrings(fd: FormData, name: string): string[] {
+  // Holt Mehrfachwerte (Checkboxen), akzeptiert zusätzlich Komma-getrennte Strings
+  const many = fd.getAll(name);
+  if (many.length > 1) {
+    return many.map((v) => String(v).trim()).filter(Boolean);
+  }
+  const single = String(fd.get(name) ?? "").trim();
+  if (!single) return [];
+  if (single.includes(",")) {
+    return single
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+  return [single];
+}
+
+/**
+ * Haupt-Action: Speichern & Fertig
+ */
+export async function saveAndFinishAction(formData: FormData): Promise<void> {
   const uid = String(formData.get("uid") || "");
   if (!uid) throw new Error("Missing uid");
 
-  // Name, Alias, Avatar auch speichern
-  const name = String(formData.get("name") || "").trim();
-  const alias = String(formData.get("alias") || "").trim();
-  const avatar_url = String(formData.get("avatar_url") || "").trim();
+  const supaRead = await supabaseServerRead();
+  const { data: me } = await supaRead.auth.getUser();
+  const email = me?.user?.email ?? "";
+  if (!email) throw new Error("Kein E-Mail im Auth-User gefunden");
 
+  // Allgemeine Profilfelder (nur vorhandene Columns)
+  const name = String(formData.get("name") || "").trim();
+  const aliasRaw = String(formData.get("alias") || "").trim();
+  const avatar_url = String(formData.get("avatar_url") || "").trim();
+  const aliasCandidate = sanitizeAlias(aliasRaw || email.split("@")[0] || "");
+
+  const nowIso = new Date().toISOString();
   const supa = await supabaseServerAction();
 
-  // ✅ Allgemeine Profildaten aktualisieren
-  await supa
-    .from("profiles")
-    .update({
-      ...(name ? { name } : {}),
-      ...(alias ? { alias } : {}),
-      ...(avatar_url ? { avatar_url } : {}),
+  // 1) profiles upsert – Versuch 1
+  let { error: upsertErr } = await supa.from("profiles").upsert(
+    {
+      user_id: uid,
+      name: name || null,
+      alias: aliasCandidate || null,
+      email, // <- wichtig für NOT NULL
+      avatar_url: avatar_url || null,
       onboarding_done: true,
-      onboarding_completed_at: new Date().toISOString(),
-    })
-    .eq("user_id", uid);
+      onboarding_completed_at: nowIso,
+      updated_at: nowIso,
+    },
+    { onConflict: "user_id" }
+  );
 
-  // ✅ Rolle-spezifische Daten speichern
-  await saveByRole(formData);
+  // 1b) Fallback bei Alias-Kollision
+  if (upsertErr && /profiles_.*alias.*key/i.test(upsertErr.message)) {
+    const aliasFallback = (
+      aliasCandidate ? `${aliasCandidate}-${uid.slice(0, 6)}` : uid.slice(0, 6)
+    ).toLowerCase();
 
-  // ✅ Redirect je nach Rolle
+    const retry = await supa.from("profiles").upsert(
+      {
+        user_id: uid,
+        name: name || null,
+        alias: aliasFallback,
+        email,
+        avatar_url: avatar_url || null,
+        onboarding_done: true,
+        onboarding_completed_at: nowIso,
+        updated_at: nowIso,
+      },
+      { onConflict: "user_id" }
+    );
+
+    upsertErr = retry.error ?? null;
+  }
+  if (upsertErr) throw new Error(upsertErr.message);
+
+  // 2) Rollen-spezifische Daten speichern
+  await saveByRole(formData, nowIso);
+
+  // 3) Ziel
   redirect(await getRedirectPath(uid));
 }
 
-// Nur Zwischenspeichern (kein Redirect)
-export async function saveOnlyAction(formData: FormData) {
-  await saveByRole(formData);
+/**
+ * Nur Zwischenspeichern (kein Redirect)
+ */
+export async function saveOnlyAction(formData: FormData): Promise<void> {
+  const uid = String(formData.get("uid") || "");
+  if (!uid) throw new Error("Missing uid");
+  await saveByRole(formData, new Date().toISOString());
   redirect("/onboarding");
 }
 
-// Rolle-spezifisches Speichern
-async function saveByRole(formData: FormData) {
+/**
+ * Speichert pro Rolle ausschließlich Spalten aus DEINEN Tabellen.
+ */
+async function saveByRole(formData: FormData, nowIso: string): Promise<void> {
   const uid = String(formData.get("uid") || "");
   if (!uid) throw new Error("Missing uid");
 
-  const supaR = await supabaseServerRead();
-  const { data: roles } = await supaR
+  const supaRead = await supabaseServerRead();
+  const { data: roles } = await supaRead
     .from("user_roles")
     .select("role")
     .eq("user_id", uid);
@@ -59,55 +128,90 @@ async function saveByRole(formData: FormData) {
   const supa = await supabaseServerAction();
 
   if (role === "athlete") {
-    const fitness_level = String(formData.get("fitness_level") || "");
-    const bio = String(formData.get("bio") || "");
+    // athlete_profiles(user_id, fitness_level, about_me, created_at, updated_at)
+    const fitness_level = String(formData.get("fitness_level") || "").trim();
+    const about_me = String(formData.get("bio") || "").trim();
 
-    await supa.from("athlete_profiles").upsert({
-      user_id: uid,
-      fitness_level,
-      bio,
-      updated_at: new Date().toISOString(),
-    });
+    const { error } = await supa.from("athlete_profiles").upsert(
+      {
+        user_id: uid,
+        fitness_level: fitness_level || null,
+        about_me: about_me || null,
+        updated_at: nowIso,
+      },
+      { onConflict: "user_id" }
+    );
+    if (error) throw new Error(error.message);
     return;
   }
 
   if (role === "motionExpert") {
-    const license_id = String(formData.get("license_id") || "");
-    const specialtiesRaw = String(formData.get("specialties") || "");
-    const portfolio_url = String(formData.get("portfolio_url") || "");
+    // motion_expert_profiles(user_id, bio, licenses[], portfolio_image_urls[], training_focus[], rating_avg, rating_count, is_public, created_at, updated_at)
+    // Form-Felder -> DB:
+    // - "licenses": Checkbox/Text (optional). Falls du im UI "license_id" hast, wird es hier zu licenses[0] gemappt.
+    const licenses = getAllStrings(formData, "licenses");
+    const licenseId = String(formData.get("license_id") || "").trim();
+    const finalLicenses = licenses.length
+      ? licenses
+      : licenseId
+      ? [licenseId]
+      : [];
 
-    const specialties = specialtiesRaw
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
+    // specialties im UI → training_focus in DB
+    const training_focus = getAllStrings(formData, "specialties").length
+      ? getAllStrings(formData, "specialties")
+      : getAllStrings(formData, "training_focus");
 
-    await supa.from("motion_expert_profiles").upsert({
-      user_id: uid,
-      license_id,
-      specialties,
-      portfolio_url: portfolio_url || null,
-      updated_at: new Date().toISOString(),
-    });
+    // Portfolio-URLs – wir akzeptieren mehrere Feldnamen, speichern aber NUR in portfolio_image_urls
+    const portfolio_image_urls = getAllStrings(formData, "portfolio_image_urls")
+      .length
+      ? getAllStrings(formData, "portfolio_image_urls")
+      : getAllStrings(formData, "portfolio_urls");
+
+    const bio = String(formData.get("bio") || "").trim();
+
+    const { error } = await supa.from("motion_expert_profiles").upsert(
+      {
+        user_id: uid,
+        bio: bio || null,
+        licenses: finalLicenses.length ? finalLicenses : null,
+        portfolio_image_urls: portfolio_image_urls.length
+          ? portfolio_image_urls
+          : null,
+        training_focus: training_focus.length ? training_focus : null,
+        // rating_* und is_public lässt du via Defaults/Separate Flows setzen
+        updated_at: nowIso,
+      },
+      { onConflict: "user_id" }
+    );
+    if (error) throw new Error(error.message);
     return;
   }
 
   if (role === "studioHost") {
-    const company = String(formData.get("company") || "");
-    const phone = String(formData.get("phone") || "");
+    // studio_host_profiles(user_id, company, phone, updated_at)
+    const company = String(formData.get("company") || "").trim();
+    const phone = String(formData.get("phone") || "").trim();
 
-    await supa.from("studio_host_profiles").upsert({
-      user_id: uid,
-      company,
-      phone,
-      updated_at: new Date().toISOString(),
-    });
+    const { error } = await supa.from("studio_host_profiles").upsert(
+      {
+        user_id: uid,
+        company: company || null,
+        phone: phone || null,
+        updated_at: nowIso,
+      },
+      { onConflict: "user_id" }
+    );
+    if (error) throw new Error(error.message);
     return;
   }
 
   throw new Error("Unbekannte Rolle");
 }
 
-// Zielseite nach erfolgreichem Onboarding
+/**
+ * Zielseite nach Onboarding
+ */
 async function getRedirectPath(uid: string): Promise<string> {
   const supa = await supabaseServerRead();
   const { data: roles } = await supa
@@ -115,13 +219,13 @@ async function getRedirectPath(uid: string): Promise<string> {
     .select("role")
     .eq("user_id", uid);
 
-  const role = roles?.[0]?.role ?? "athlete";
+  const role =
+    roles?.map((r) => r.role).find((r) => r !== "admin") ?? "athlete";
   const targetByRole: Record<string, string> = {
-    athlete: "/dashboard/profile",
-    motionExpert: "/dashboard/profile",
-    studioHost: "/dashboard/profile",
+    athlete: "/dashboard/athlete/profile",
+    motionExpert: "/dashboard/motionexpert/profile",
+    studioHost: "/dashboard/studioHost/profile",
     admin: "/admin/invites",
   };
-
-  return targetByRole[role] || "/dashboard";
+  return targetByRole[role] || "/login";
 }

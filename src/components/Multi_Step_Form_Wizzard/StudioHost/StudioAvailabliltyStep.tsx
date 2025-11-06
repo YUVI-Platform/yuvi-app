@@ -1,6 +1,6 @@
 "use client";
 
-import MultiStepFormDataTypes from "@/Types/MultiStepWizzardTypes";
+import MultiStepFormDataTypes from "@/types/MultiStepWizzardTypes";
 import { X } from "feather-icons-react";
 import dayjs from "dayjs";
 

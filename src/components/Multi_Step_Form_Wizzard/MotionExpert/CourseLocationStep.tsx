@@ -1,4 +1,4 @@
-import { StudioProps } from "@/Types/Studio";
+import { StudioProps } from "@/types/Studio";
 // alt: import { StudioCard } from "../../ui/Cards/StudioCards";
 import StudioCard from "@/components/ui/Cards/StudioCards";
 
