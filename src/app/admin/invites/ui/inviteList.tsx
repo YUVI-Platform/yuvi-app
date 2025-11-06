@@ -2,7 +2,7 @@
 "use client";
 import type { Enums } from "@/types/supabase";
 import { toggleInvite, deleteInvite } from "../actions";
-import Button from "@/components/ui/Button";
+import Button from "@/components/ui/button";
 import Badge from "@/components/ui/badge";
 import { useTransition } from "react";
 

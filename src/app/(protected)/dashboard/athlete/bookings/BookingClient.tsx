@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from "react";
-import Button from "@/components/ui/Button";
+import Button from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { CheckIcon, TrashIcon } from "lucide-react";
