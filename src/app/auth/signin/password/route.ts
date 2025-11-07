@@ -83,9 +83,9 @@ export async function POST(req: Request) {
 
   // role-basiertes Default-Ziel
   const defaultAfterLogin: Record<Role, string> = {
-    athlete: "/dashboard/athlete/profile",
-    motionExpert: "/dashboard/motionexpert/profile",
-    studioHost: "/dashboard/studiohost/profile",
+    athlete: "/dashboard/athlete",
+    motionExpert: "/dashboard/motionexpert",
+    studioHost: "/dashboard/studiohost",
     admin: "/admin/invites",
   };
 

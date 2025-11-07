@@ -1,26 +1,37 @@
-// src/app/(protected)/dashboard/motionexpert/occ/[id]/checkin/ui/QR.tsx
+// src/components/qr/QR.tsx
 "use client";
 
 import { useEffect, useRef } from "react";
 
 type Props = { value: string; size?: number; margin?: number };
 
-export function QR({ value, size = 240, margin = 0 }: Props) {
-  const ref = useRef<HTMLCanvasElement>(null);
+export function QR({ value, size = 280, margin = 0 }: Props) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
     let cancelled = false;
+    const node = canvasRef.current; // lokale Kopie, vermeidet Cleanup-Warnungen
+
     (async () => {
-      // Dynamisch laden, damit wir sowohl CJS als auch ESM abdecken
       const mod: any = await import("qrcode");
-      const toCanvas = mod?.toCanvas ?? mod?.default?.toCanvas; // Fallback
-      if (!toCanvas || cancelled || !ref.current) return;
-      await toCanvas(ref.current, value, { width: size, margin });
+      const toCanvas = mod?.toCanvas ?? mod?.default?.toCanvas;
+      if (!toCanvas || cancelled || !node) return;
+      await toCanvas(node, value, { width: size, margin });
     })();
+
     return () => {
       cancelled = true;
     };
   }, [value, size, margin]);
 
-  return <canvas ref={ref} aria-label="QR code" role="img" />;
+  return (
+    <canvas
+      ref={canvasRef}
+      width={size}
+      height={size}
+      aria-label="QR code"
+      role="img"
+      className="rounded-lg shadow"
+    />
+  );
 }

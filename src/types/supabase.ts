@@ -1569,10 +1569,12 @@ export type Database = {
         Returns: string
       }
       cancel_booking: { Args: { p_booking: string }; Returns: boolean }
-      checkin_booking: {
-        Args: { p_booking: string; p_code: string }
-        Returns: boolean
-      }
+      checkin_booking:
+        | {
+            Args: { p_booking: string; p_code: string; p_occurrence: string }
+            Returns: boolean
+          }
+        | { Args: { p_booking: string; p_code: string }; Returns: boolean }
       checkin_with_code: {
         Args: { p_code: string; p_occurrence: string }
         Returns: boolean
