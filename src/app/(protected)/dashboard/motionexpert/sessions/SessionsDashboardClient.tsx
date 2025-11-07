@@ -310,12 +310,22 @@ function HeroOccurrenceCard({
         </div>
 
         <div className="pt-1">
-          <Link
-            href={`/dashboard/motionexpert/sessions`} // ggf. Detail/Manage-URL
-            className="inline-flex items-center rounded-md border px-3 py-2 text-sm hover:bg-slate-50"
-          >
-            Verwalten
-          </Link>
+          <div className="pt-1 flex gap-2">
+            <Link
+              href={`/dashboard/motionexpert/sessions`}
+              className="inline-flex items-center rounded-md border px-3 py-2 text-sm hover:bg-slate-50"
+            >
+              Verwalten
+            </Link>
+
+            {/* ⬇️ Neuer Button: Check-in starten */}
+            <Link
+              href={`/dashboard/motionexpert/occ/${occurrence.id}/checkin`}
+              className="inline-flex items-center rounded-md bg-emerald-600 px-3 py-2 text-sm text-white hover:bg-emerald-700"
+            >
+              Check-in starten
+            </Link>
+          </div>
         </div>
       </div>
     </div>

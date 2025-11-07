@@ -1037,6 +1037,82 @@ export type Database = {
         }
         Relationships: []
       }
+      occurrence_checkin_tokens: {
+        Row: {
+          code_hash: string
+          created_at: string
+          created_by: string
+          expires_at: string
+          id: string
+          occurrence_id: string
+        }
+        Insert: {
+          code_hash: string
+          created_at?: string
+          created_by: string
+          expires_at: string
+          id?: string
+          occurrence_id: string
+        }
+        Update: {
+          code_hash?: string
+          created_at?: string
+          created_by?: string
+          expires_at?: string
+          id?: string
+          occurrence_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "occurrence_checkin_tokens_occurrence_id_fkey"
+            columns: ["occurrence_id"]
+            isOneToOne: false
+            referencedRelation: "session_occurrences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      occurrence_checkin_windows: {
+        Row: {
+          code_hash: string
+          expires_at: string
+          id: string
+          issued_at: string
+          issued_by_user_id: string
+          max_uses: number | null
+          occurrence_id: string
+          used_count: number
+        }
+        Insert: {
+          code_hash: string
+          expires_at: string
+          id?: string
+          issued_at?: string
+          issued_by_user_id: string
+          max_uses?: number | null
+          occurrence_id: string
+          used_count?: number
+        }
+        Update: {
+          code_hash?: string
+          expires_at?: string
+          id?: string
+          issued_at?: string
+          issued_by_user_id?: string
+          max_uses?: number | null
+          occurrence_id?: string
+          used_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "occurrence_checkin_windows_occurrence_id_fkey"
+            columns: ["occurrence_id"]
+            isOneToOne: false
+            referencedRelation: "session_occurrences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           alias: string | null
@@ -1488,9 +1564,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      book_occurrence: {
+        Args: { p_hold_minutes?: number; p_occurrence: string }
+        Returns: string
+      }
       cancel_booking: { Args: { p_booking: string }; Returns: boolean }
       checkin_booking: {
         Args: { p_booking: string; p_code: string }
+        Returns: boolean
+      }
+      checkin_with_code: {
+        Args: { p_code: string; p_occurrence: string }
         Returns: boolean
       }
       claim_invite: {
@@ -1501,6 +1585,17 @@ export type Database = {
         }[]
       }
       is_role: { Args: { role_text: string }; Returns: boolean }
+      open_checkin_window: {
+        Args: {
+          p_max_uses?: number
+          p_occurrence: string
+          p_ttl_minutes?: number
+        }
+        Returns: {
+          expires_at: string
+          token: string
+        }[]
+      }
       seats_left: {
         Args: { p_hold_minutes?: number; p_occurrence: string }
         Returns: number
