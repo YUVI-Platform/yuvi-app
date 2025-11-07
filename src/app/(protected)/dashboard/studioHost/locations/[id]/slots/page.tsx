@@ -14,9 +14,9 @@ import { RecurSubmitGuard } from "./ui/RecureSubmitGuard";
 export default async function SlotsPage({
   params,
 }: {
-  params: { id: string }; // ← kein Promise hier nötig
+  params: Promise<{ id: string }>;
 }) {
-  const { id } = params;
+  const { id } = await params;
   const supa = await supabaseServerRead();
   const { data: me } = await supa.auth.getUser();
   if (!me?.user)
