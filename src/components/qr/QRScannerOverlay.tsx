@@ -1,44 +1,48 @@
+// src/components/qr/QRScannerOverlay.tsx
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import {
-  BrowserMultiFormatReader,
-  type IScannerControls,
-} from "@zxing/browser";
-
-type Props = {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onDetected: (text: string) => void;
-};
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 export default function QRScannerOverlay({
   open,
   onOpenChange,
   onDetected,
-}: Props) {
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onDetected: (text: string) => void;
+}) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const controlsRef = useRef<IScannerControls | null>(null);
+  const controlsRef = useRef<import("@zxing/browser").IScannerControls | null>(
+    null
+  );
   const [err, setErr] = useState("");
 
   useEffect(() => {
-    // ❗️Ref einmal "einfrieren", damit Cleanup nicht mit geändertem Ref arbeitet
-    const videoEl = videoRef.current;
+    const videoEl = videoRef.current; // ref „einfrieren“
     let mounted = true;
-    let localControls: IScannerControls | null = null;
+    let localControls: import("@zxing/browser").IScannerControls | null = null;
 
     async function start() {
       try {
-        const devices = await BrowserMultiFormatReader.listVideoInputDevices();
-        const backCam =
-          devices.find((d) => /back|rear|environment/i.test(d.label)) ??
-          devices[0];
+        const { BrowserMultiFormatReader } = await import("@zxing/browser");
+
+        // ⚙️ Nutze Constraints statt Device-ID (besser auf iOS/Android)
+        const constraints: MediaStreamConstraints = {
+          video: {
+            facingMode: { ideal: "environment" },
+            // optional etwas höher auflösen
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
+          audio: false,
+        };
 
         const reader = new BrowserMultiFormatReader();
-        const controls = await reader.decodeFromVideoDevice(
-          backCam?.deviceId ?? undefined,
-          videoEl!, // <-- gefrorenes Element
+        const controls = await reader.decodeFromConstraints(
+          constraints,
+          videoEl!,
           (result, _err, ctrls) => {
             if (ctrls) localControls = ctrls;
             if (result && mounted) {
@@ -51,14 +55,16 @@ export default function QRScannerOverlay({
 
         localControls = controls;
         controlsRef.current = controls;
-      } catch (e: unknown) {
-        if (mounted) {
-          if (e instanceof Error) {
-            setErr(e.message ?? "Kamera-Zugriff fehlgeschlagen.");
-          } else {
-            setErr(String(e) || "Kamera-Zugriff fehlgeschlagen.");
-          }
-        }
+      } catch (e: any) {
+        const msg =
+          e?.name === "NotAllowedError"
+            ? "Kamerazugriff verweigert. Bitte Berechtigung erteilen."
+            : e?.name === "NotFoundError"
+            ? "Keine Kamera gefunden."
+            : e?.message?.includes("Only secure origins are allowed")
+            ? "Kamera erfordert HTTPS oder localhost. Verwende z. B. ngrok/CF Tunnel."
+            : e?.message || "Kamera-Zugriff fehlgeschlagen.";
+        setErr(msg);
       }
     }
 
@@ -66,11 +72,9 @@ export default function QRScannerOverlay({
 
     return () => {
       mounted = false;
-
-      // ZXing stoppen
       (localControls ?? controlsRef.current)?.stop();
 
-      // Tracks vom exakt diesem Video-Element stoppen
+      // exakt diesen Stream stoppen
       const stream = videoEl?.srcObject as MediaStream | null | undefined;
       stream?.getTracks().forEach((t) => t.stop());
       if (videoEl) videoEl.srcObject = null;
@@ -83,7 +87,7 @@ export default function QRScannerOverlay({
         videoRef.current?.srcObject as MediaStream | undefined
       )?.getVideoTracks?.()[0];
       if (!track) return;
-      // @ts-expect-error torch ist experimentell
+      // @ts-expect-error - applyConstraints with torch is not typed in lib.dom for all browsers
       await track.applyConstraints({ advanced: [{ torch: true }] });
     } catch {
       setErr("Blitz wird auf diesem Gerät/Browser nicht unterstützt.");
@@ -94,16 +98,20 @@ export default function QRScannerOverlay({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="p-0 w-[100vw] h-[100vh] max-w-none bg-black">
+        <DialogTitle className="sr-only">QR-Scanner</DialogTitle>
+
         <div className="relative w-full h-full">
           <video
             ref={videoRef}
             className="w-full h-full object-cover"
             playsInline
             muted
+            autoPlay
           />
           <div className="pointer-events-none absolute inset-0 grid place-items-center">
             <div className="w-64 h-64 rounded-xl border-4 border-white/90 shadow-[0_0_0_9999px_rgba(0,0,0,0.55)]" />
           </div>
+
           <div className="absolute top-4 left-4 flex gap-2">
             <button
               type="button"
@@ -120,6 +128,7 @@ export default function QRScannerOverlay({
           >
             Schließen
           </button>
+
           {err && (
             <div className="absolute bottom-0 left-0 right-0 m-4 rounded-lg bg-white/90 text-red-600 text-sm p-3">
               {err}
