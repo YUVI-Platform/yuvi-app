@@ -1,4 +1,3 @@
-// app/(protected)/dashboard/athlete/occ/[id]/page.tsx
 import { redirect } from "next/navigation";
 import { supabaseServerRead } from "@/lib/supabaseServer";
 import SeatsLeftBadge from "@/app/(protected)/components/SeatsLeftBadge";
@@ -9,7 +8,7 @@ import { Separator } from "@/components/ui/separator";
 type Params = Promise<{ id: string }>;
 
 export default async function OccDetailPage({ params }: { params: Params }) {
-  const { id: occId } = await params; // ✅ Next.js 15 dynamic params must be awaited
+  const { id: occId } = await params;
 
   const supa = await supabaseServerRead();
   const { data: me } = await supa.auth.getUser();
@@ -37,8 +36,18 @@ export default async function OccDetailPage({ params }: { params: Params }) {
     );
   }
 
+  // 👇 prüfen, ob der aktuelle User diese Occurrence aktiv gebucht hat
+  const { data: myBooking } = await supa
+    .from("bookings")
+    .select("id, status")
+    .eq("occurrence_id", occId)
+    .eq("athlete_user_id", me.user.id)
+    .in("status", ["pending", "confirmed"])
+    .maybeSingle();
+
   const starts = new Date(occ.starts_at).toLocaleString();
   const img = occ.sessions?.image_urls?.[0];
+  const path = `/dashboard/athlete/occ/${occId}`;
 
   return (
     <div className="p-4 max-w-3xl mx-auto space-y-4">
@@ -72,7 +81,11 @@ export default async function OccDetailPage({ params }: { params: Params }) {
           )}
 
           <div>
-            <BookButton occurrenceId={occId} />
+            <BookButton
+              occurrenceId={occId}
+              bookingId={myBooking?.id ?? null}
+              path={path}
+            />
           </div>
         </CardContent>
       </Card>
