@@ -131,7 +131,6 @@ export default function StepLocationType({
                     </div>
                     <div className="mt-1 text-xs text-slate-500">
                       Slot-Preis: {slot_price}
-                      EUR
                     </div>
                   </button>
 

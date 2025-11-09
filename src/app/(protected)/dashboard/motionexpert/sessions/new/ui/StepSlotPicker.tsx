@@ -9,12 +9,20 @@ type SlotStatus = Enums<"slot_status">; // "available" | "held" | "booked" | "bl
 
 export type StudioSlot = {
   id: string;
-  starts_at: string; // ISO
-  ends_at: string; // ISO
+  starts_at: string; // ISO string
+  ends_at: string; // ISO string
   status: SlotStatus | string;
   capacity: number | null;
   allowed_tags: string[] | null;
 };
+
+/**
+ * ----- Constants / i18n -----
+ * We normalize all human-facing formatting to Europe/Berlin
+ * so grouping and display are consistent regardless of the user's OS locale.
+ */
+const LOCALE = "de-DE";
+const TIMEZONE = "Europe/Berlin";
 
 /* ---------- Helpers ---------- */
 function startOfDayLocal(d: Date) {
@@ -30,26 +38,38 @@ function addDays(d: Date, n: number) {
 function toISO(d: Date) {
   return d.toISOString();
 }
-function ymdLocal(d: Date) {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${dd}`;
+
+/** YYYY-MM-DD for a Date using a specific time zone */
+function ymdInTZ(date: Date) {
+  // en-CA yields a stable YYYY-MM-DD format
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
 }
+
+/** YYYY-MM-DD bucket for an ISO string in Europe/Berlin */
+function ymdLocalFromISO(iso: string) {
+  return ymdInTZ(new Date(iso));
+}
+
 function fmtDayHeader(d: Date) {
-  return d.toLocaleDateString(undefined, {
+  return new Intl.DateTimeFormat(LOCALE, {
+    timeZone: TIMEZONE,
     weekday: "short",
     day: "2-digit",
     month: "short",
     year: "numeric",
-  });
+  }).format(d);
 }
 function fmtTime(iso: string) {
-  const dt = new Date(iso);
-  return dt.toLocaleTimeString(undefined, {
+  return new Intl.DateTimeFormat(LOCALE, {
+    timeZone: TIMEZONE,
     hour: "2-digit",
     minute: "2-digit",
-  });
+  }).format(new Date(iso));
 }
 function mergeById(oldArr: StudioSlot[], incoming: StudioSlot[]) {
   const map = new Map<string, StudioSlot>();
@@ -57,6 +77,8 @@ function mergeById(oldArr: StudioSlot[], incoming: StudioSlot[]) {
   for (const s of incoming) map.set(s.id, s);
   return Array.from(map.values());
 }
+
+/* ---------- Component ---------- */
 
 type Props = {
   locationId: string;
@@ -69,13 +91,13 @@ export default function StepSlotPicker({
   selectedSlotIds,
   onChangeSelected,
 }: Props) {
-  // hält immer die neueste Callback-Ref, ohne Re-Renders auszulösen
+  // Always keep the freshest callback without re-rendering
   const emitRef = useRef<typeof onChangeSelected>(undefined);
   useEffect(() => {
     emitRef.current = onChangeSelected;
   }, [onChangeSelected]);
 
-  // stabiles 30-Tage-Fenster
+  // Stable 30-day window from today
   const { FROM, TO } = useMemo(() => {
     const TODAY = startOfDayLocal(new Date());
     return { FROM: TODAY, TO: addDays(TODAY, 29) };
@@ -85,45 +107,72 @@ export default function StepSlotPicker({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Location-Wechsel: State & Auswahl resetten
+  // Abort ongoing fetches when location changes or unmounts
+  const abortRef = useRef<AbortController | null>(null);
+
+  // Reset on location switch
   useEffect(() => {
+    abortRef.current?.abort();
     setSlots([]);
     setError(null);
     setLoading(false);
     emitRef.current?.([], []);
   }, [locationId]);
 
-  // schneller Index
+  // Fast index by id
   const slotIndex = useMemo(() => {
     const m = new Map<string, StudioSlot>();
     for (const s of slots) m.set(s.id, s);
     return m;
   }, [slots]);
 
-  // Slots laden
+  // Load slots for [from, to]
   const fetchRange = useCallback(
     async (f: Date, t: Date) => {
       if (!locationId) return;
       setError(null);
+      setLoading(true);
+
+      // cancel previous in-flight
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
+
       try {
         const url = `/api/studioSlots/${encodeURIComponent(
           locationId
         )}?from=${encodeURIComponent(toISO(f))}&to=${encodeURIComponent(
-          toISO(addDays(t, 1)) // inkl. letztem Tag
-        )}`;
-        const res = await fetch(url, { cache: "no-store" });
-        if (!res.ok) {
-          const j = await res.json().catch(() => ({}));
-          throw new Error(j?.error || `HTTP ${res.status}`);
-        }
-        const data = (await res.json()) as { slots: StudioSlot[] };
-        setSlots((prev) =>
-          mergeById(prev, Array.isArray(data.slots) ? data.slots : [])
-        );
+          toISO(addDays(t, 1)) // letzter Tag inkl.
+        )}&onlyFree=1`;
+        const res = await fetch(url, {
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        const text = await res.text();
+        const data = text ? JSON.parse(text) : {};
+        if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+
+        const incoming = Array.isArray(data.slots)
+          ? (data.slots as StudioSlot[])
+          : [];
+        setSlots((prev) => mergeById(prev, incoming));
       } catch (e: unknown) {
+        // ignore cancels from AbortController/fetch
+        if (
+          // browser DOM exception
+          (typeof DOMException !== "undefined" &&
+            e instanceof DOMException &&
+            e.name === "AbortError") ||
+          // Node/other environments
+          (e instanceof Error && e.name === "AbortError")
+        ) {
+          return;
+        }
         setError(
           e instanceof Error ? e.message : "Fehler beim Laden der Slots."
         );
+      } finally {
+        setLoading(false);
       }
     },
     [locationId]
@@ -133,16 +182,16 @@ export default function StepSlotPicker({
   useEffect(() => {
     let alive = true;
     (async () => {
-      setLoading(true);
       await fetchRange(FROM, TO);
-      if (alive) setLoading(false);
+      if (!alive) return;
     })();
     return () => {
       alive = false;
+      abortRef.current?.abort();
     };
   }, [fetchRange, FROM, TO]);
 
-  // Tage bauen
+  // Day list for the scroller
   const days = useMemo(() => {
     const list: Date[] = [];
     let cur = new Date(FROM);
@@ -153,13 +202,13 @@ export default function StepSlotPicker({
     return list;
   }, [FROM, TO]);
 
-  // Gruppierung pro Tag
+  // Group slots by local (Europe/Berlin) day of their start time
   const byDay = useMemo(() => {
     const map = new Map<string, StudioSlot[]>();
     for (const s of slots) {
-      const k = s.starts_at.slice(0, 10);
-      if (!map.has(k)) map.set(k, []);
-      map.get(k)!.push(s);
+      const key = ymdLocalFromISO(s.starts_at);
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(s);
     }
     for (const arr of map.values()) {
       arr.sort((a, b) => a.starts_at.localeCompare(b.starts_at));
@@ -172,7 +221,7 @@ export default function StepSlotPicker({
     [slots]
   );
 
-  // Auswahl
+  // Selection API (controlled by parent)
   const isSelected = useCallback(
     (id: string) => selectedSlotIds.includes(id),
     [selectedSlotIds]
@@ -181,7 +230,7 @@ export default function StepSlotPicker({
   const toggleSelect = useCallback(
     (id: string) => {
       const slot = slotIndex.get(id);
-      if (!slot || slot.status !== "available") return; // ❗ Guard
+      if (!slot || slot.status !== "available") return; // guard non-selectable
 
       const nextIds = selectedSlotIds?.includes(id)
         ? selectedSlotIds.filter((x) => x !== id)
@@ -249,7 +298,9 @@ export default function StepSlotPicker({
       </div>
 
       <p className="text-xs text-slate-500">
-        Zeitraum: {FROM.toLocaleDateString()} – {TO.toLocaleDateString()}
+        Zeitraum:{" "}
+        {new Intl.DateTimeFormat(LOCALE, { timeZone: TIMEZONE }).format(FROM)} –{" "}
+        {new Intl.DateTimeFormat(LOCALE, { timeZone: TIMEZONE }).format(TO)}
       </p>
 
       {error && (
@@ -262,17 +313,17 @@ export default function StepSlotPicker({
       <div className="relative overflow-x-auto overflow-y-hidden rounded-xl border bg-white p-3 min-h-[300px] snap-x snap-mandatory">
         <div className="flex flex-row items-stretch gap-3">
           {days.map((d) => {
-            const k = ymdLocal(d);
+            const k = ymdInTZ(d);
             const dayAll = byDay.get(k) ?? [];
             const dayAvail = dayAll.filter((s) => s.status === "available");
-            const hasAny = dayAll.length > 0;
+            const hasAnyAvail = dayAvail.length > 0;
 
             return (
               <div
                 key={k}
                 className={clsx(
                   "snap-start min-w-[240px] max-w-[260px] rounded-lg ring-1 p-2",
-                  hasAny
+                  hasAnyAvail
                     ? "bg-emerald-50/40 ring-emerald-200"
                     : "bg-slate-50 ring-slate-200 opacity-70"
                 )}
@@ -280,37 +331,43 @@ export default function StepSlotPicker({
                 <div
                   className={clsx(
                     "mb-2 flex items-center justify-between text-xs",
-                    hasAny ? "text-emerald-900" : "text-slate-500"
+                    hasAnyAvail ? "text-emerald-900" : "text-slate-500"
                   )}
                 >
                   <div className="font-medium">{fmtDayHeader(d)}</div>
-                  {/* z. B. "2/4" = 2 verfügbar von 4 gesamt */}
+                  {/* e.g. "2/4" = 2 available of 4 total */}
                   <div className="opacity-70">
-                    {hasAny ? `${dayAvail.length}/${dayAll.length}` : "—"}
+                    {hasAnyAvail ? `${dayAvail.length}` : "—"}
                   </div>
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  {!hasAny ? (
-                    <div className="text-xs text-slate-500">Keine Slots</div>
+                  {!hasAnyAvail ? (
+                    <div className="text-xs text-slate-500">
+                      Keine freien Slots
+                    </div>
                   ) : (
-                    dayAll.map((s) => {
+                    dayAvail.map((s) => {
                       const selected = isSelected(s.id);
-                      const selectable = s.status === "available"; // nur diese darf man wählen
+                      const selectable = s.status === "available"; // bleibt true hier
 
                       return (
                         <button
                           key={s.id}
                           type="button"
                           onClick={() => toggleSelect(s.id)}
-                          disabled={!selectable} // ❗ nicht verfügbar => disabled
+                          disabled={false}
+                          aria-pressed={selected}
+                          aria-label={`${fmtTime(s.starts_at)}–${fmtTime(
+                            s.ends_at
+                          )} ${selectable ? "verfügbar" : String(s.status)}`}
                           className={clsx(
                             "w-full rounded-md px-2 py-1.5 text-xs ring-1 ring-inset text-left",
                             selected
                               ? "bg-black text-white ring-black"
                               : selectable
                               ? "bg-white text-slate-800 hover:bg-slate-100 ring-slate-200"
-                              : "bg-slate-100 text-slate-400 ring-slate-200 cursor-not-allowed" // ❗ ausgegraut
+                              : "bg-slate-100 text-slate-400 ring-slate-200 cursor-not-allowed"
                           )}
                           title={`${fmtTime(s.starts_at)}–${fmtTime(
                             s.ends_at

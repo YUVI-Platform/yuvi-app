@@ -58,7 +58,7 @@ export default function SlotPicker({
         const res = await fetch(
           `/api/studioSlots/${locationId}?from=${encodeURIComponent(
             from
-          )}&to=${encodeURIComponent(to)}`,
+          )}&to=${encodeURIComponent(to)}&onlyFree=1`,
           { cache: "no-store" }
         );
         const json = await res.json();
@@ -76,8 +76,11 @@ export default function SlotPicker({
   }, [locationId, daysSpan]);
 
   const grouped = useMemo(() => {
+    // 👉 nur freie Slots
+    const visible = slots.filter((s) => s.status === "available");
+
     const map = new Map<string, SlotRow[]>();
-    for (const s of slots) {
+    for (const s of visible) {
       const key = new Date(s.starts_at).toISOString().slice(0, 10); // YYYY-MM-DD (UTC)
       const arr = map.get(key) || [];
       arr.push(s);

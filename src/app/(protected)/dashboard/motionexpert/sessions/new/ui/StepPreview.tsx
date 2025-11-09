@@ -7,6 +7,7 @@ import type { SessionType } from "./StepSessionType";
 import type { LocationType } from "./StepLocationType";
 import type { StudioSlot } from "./StepSlotPicker";
 import type { SessionDetails } from "./StepSessionDetails";
+import { useRouter } from "next/navigation";
 
 type MinimalStudio = {
   id: string;
@@ -73,6 +74,9 @@ export default function StepPreview({
 }: Props) {
   const [isPending, startTransition] = useTransition();
   const [showRaw, setShowRaw] = useState(false);
+  const [success, setSuccess] = useState<{ sessionId: string } | null>(null);
+  const [serverError, setServerError] = useState<string | null>(null);
+  const router = useRouter();
 
   const groupedSlots = useMemo(() => {
     const byDay = new Map<string, StudioSlot[]>();
@@ -87,27 +91,41 @@ export default function StepPreview({
     return byDay;
   }, [selectedSlots]);
 
-  const payload = useMemo(
-    () => ({
-      session: {
-        session_type: sessionType,
-        location_type: locationType,
-        title: details.title,
-        description: details.description ?? "",
-        duration_minutes: details.duration_min,
-        max_participants: details.capacity ?? undefined,
-        price_cents: details.price_cents ?? undefined,
-        tags: details.tags ?? [],
-        image_urls: details.image_url ? [details.image_url] : [],
-        equipment: [],
-        is_draft: false,
-        // Hinweis: recommended_level absichtlich NICHT gesendet,
-        // falls dein Action-Schema das (noch) nicht kennt.
-      },
+  const exactlyOneLocationOK =
+    (locationType === "studio_location" && !!studio?.id) ||
+    (locationType === "self_hosted" && !!details.self_hosted_location_id);
+
+  const payload = useMemo(() => {
+    const base = {
+      session_type: sessionType,
+      location_type: locationType,
+      title: details.title,
+      description: details.description ?? "",
+      duration_minutes: details.duration_min,
+      max_participants: details.capacity ?? null,
+      price_cents: details.price_cents ?? null,
+      tags: details.tags ?? [],
+      image_urls: details.image_url ? [details.image_url] : [],
+      equipment: [],
+      is_draft: false,
+    };
+
+    const locationFields =
+      locationType === "studio_location"
+        ? {
+            studio_location_id: studio?.id ?? null,
+            self_hosted_location_id: null,
+          }
+        : {
+            studio_location_id: null,
+            self_hosted_location_id: details.self_hosted_location_id ?? null,
+          };
+
+    return {
+      session: { ...base, ...locationFields },
       studioSlotIds: locationType === "studio_location" ? selectedSlotIds : [],
-    }),
-    [sessionType, locationType, details, selectedSlotIds]
-  );
+    };
+  }, [sessionType, locationType, details, selectedSlotIds, studio?.id]);
 
   const coverImage =
     details.image_url ||
@@ -140,6 +158,11 @@ export default function StepPreview({
     },
   ];
 
+  function handleCloseSuccess() {
+    setSuccess(null);
+    router.push("/motionexperts/sessions"); // ggf. an deine Route anpassen
+  }
+
   return (
     <div className="space-y-5">
       {/* Status Badges */}
@@ -158,7 +181,39 @@ export default function StepPreview({
           </span>
         ))}
       </div>
-
+      {success && (
+        <div
+          role="alert"
+          aria-live="polite"
+          className="flex items-start justify-between gap-3 rounded-md border border-emerald-300 bg-emerald-50 p-3 text-sm text-emerald-900"
+        >
+          <div>
+            🎉 <b>Session veröffentlicht.</b>
+            <span className="ml-2 opacity-80">
+              ID:{" "}
+              <code className="rounded bg-white/70 px-1">
+                {success.sessionId}
+              </code>
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={handleCloseSuccess}
+            className="rounded border border-emerald-300 bg-white/60 px-2 py-1 text-emerald-900 hover:bg-emerald-100"
+            title="Schließen und zur Übersicht"
+          >
+            Schließen
+          </button>
+        </div>
+      )}
+      {serverError && (
+        <div
+          role="alert"
+          className="rounded-md border border-rose-300 bg-rose-50 p-3 text-sm text-rose-800"
+        >
+          {serverError}
+        </div>
+      )}
       {/* Preview Card */}
       <div className="overflow-hidden rounded-2xl border">
         <div className="aspect-[16/6] w-full bg-slate-100">
@@ -281,27 +336,38 @@ export default function StepPreview({
             action={(fd) => {
               fd.set("payload", JSON.stringify(payload));
               startTransition(async () => {
-                await publishSessions(fd);
+                setServerError(null);
+                try {
+                  const res = await publishSessions(fd);
+                  if (res?.ok) {
+                    setSuccess({ sessionId: res.sessionId });
+                  }
+                } catch (e: unknown) {
+                  const msg =
+                    e instanceof Error
+                      ? e.message
+                      : "Fehler beim Veröffentlichen.";
+                  setServerError(msg);
+                }
               });
             }}
           >
             <div className="mt-2 flex items-center gap-3">
               <button
                 type="submit"
-                disabled={isPending}
+                disabled={isPending /* || !exactlyOneLocationOK  */}
                 className="rounded-md bg-black px-4 py-2 text-white disabled:opacity-50"
               >
                 {isPending ? "Veröffentliche…" : "Veröffentlichen"}
               </button>
-
-              <button
+              {/* <button
                 type="button"
                 onClick={() => setShowRaw((s) => !s)}
                 className="rounded-md border px-3 py-2 text-sm"
                 aria-pressed={showRaw}
               >
                 {showRaw ? "Payload ausblenden" : "Payload anzeigen"}
-              </button>
+              </button> */}
             </div>
           </form>
 

@@ -1,173 +1,128 @@
 // src/app/(protected)/dashboard/motionexpert/sessions/new/actions.ts
 "use server";
 
-import { redirect } from "next/navigation";
-import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { supabaseServerAction, supabaseServerRead } from "@/lib/supabaseServer";
-import type {
-  SessionInsert,
-  SessionOccurrenceInsert,
-  StudioSlotRow,
-  SessionTypeEnum,
-  LocationTypeEnum,
-} from "@/types/db-helpers";
-import { Constants } from "@/types/supabase";
+import { supabaseServerAction } from "@/lib/supabaseServer";
+import type { Database } from "@/types/supabase";
 
-// Enums
-const SESSION_TYPES = Constants.public.Enums.session_type as readonly [
-  SessionTypeEnum,
-  ...SessionTypeEnum[]
-];
-const LOCATION_TYPES = Constants.public.Enums.location_type as readonly [
-  LocationTypeEnum,
-  ...LocationTypeEnum[]
-];
-
-// Falls du ein DB-Enum hast (z.B. public.enum: fitness_level), nutz es hier.
-// Sonst fallback auf Literal-Union:
-const FITNESS_LEVELS = ["beginner", "intermediate", "advanced"] as const;
-
-// Client->Server Payload (transport)
-const PublishPayload = z.object({
-  session: z.object({
-    session_type: z.enum(SESSION_TYPES),
-    location_type: z.enum(LOCATION_TYPES),
-    title: z.string().min(3).max(160),
-    description: z.string().max(4000).optional().default(""),
-    duration_minutes: z.number().int().min(1).max(10000),
-    max_participants: z.number().int().positive().optional(),
-    price_cents: z.number().int().min(0).optional(),
-    tags: z.array(z.string()).max(50).optional().default([]),
-    image_urls: z.array(z.string().url()).max(12).optional().default([]),
-    equipment: z.array(z.string()).max(50).optional().default([]),
-    is_draft: z.boolean().optional().default(false),
-    // ✅ NEU: empfohlenes Fitnesslevel
-    recommended_level: z.enum(FITNESS_LEVELS).optional().nullable(),
-  }),
-  studioSlotIds: z.array(z.string().uuid()).optional().default([]),
+const BaseSessionSchema = z.object({
+  session_type: z.enum(["private", "group", "trainWithMe"]),
+  location_type: z.enum(["studio_location", "self_hosted"]),
+  title: z.string().min(3),
+  description: z.string().default(""),
+  duration_minutes: z.number().int().positive(),
+  max_participants: z.number().int().positive().optional(),
+  price_cents: z.number().int().nonnegative().optional(),
+  tags: z.array(z.string()).max(50).default([]),
+  image_urls: z.array(z.string().url()).max(10).default([]),
+  equipment: z.array(z.string()).default([]),
+  is_draft: z.boolean().default(false),
+  recommended_level: z
+    .enum(["beginner", "intermediate", "advanced"])
+    .optional(),
 });
 
-export async function publishSessions(formData: FormData) {
-  const raw = String(formData.get("payload") ?? "");
-  let parsed: z.infer<typeof PublishPayload>;
-  try {
-    parsed = PublishPayload.parse(JSON.parse(raw));
-  } catch {
-    throw new Error("Ungültige Formulardaten.");
-  }
+const SessionStudio = BaseSessionSchema.extend({
+  location_type: z.literal("studio_location"),
+  studio_location_id: z.string().uuid(),
+  self_hosted_location_id: z.null().optional(),
+});
 
-  const supaWrite = await supabaseServerAction();
-  const { data: me } = await supaWrite.auth.getUser();
-  const uid = me?.user?.id;
-  if (!uid) redirect("/login?redirectTo=/dashboard/motionexpert/sessions/new");
+const SessionSelfHosted = BaseSessionSchema.extend({
+  location_type: z.literal("self_hosted"),
+  studio_location_id: z.null().optional(),
+  self_hosted_location_id: z.string().uuid(),
+});
 
-  let fallbackMax: number | undefined;
-  let fallbackPrice: number | undefined;
+const PayloadSchema = z.object({
+  session: z.discriminatedUnion("location_type", [
+    SessionStudio,
+    SessionSelfHosted,
+  ]),
+  studioSlotIds: z.array(z.string()).default([]),
+});
 
-  if (
-    parsed.session.location_type === "studio_location" &&
-    parsed.studioSlotIds.length > 0
-  ) {
-    const supaRead = await supabaseServerRead();
+export async function publishSessions(fd: FormData) {
+  const raw = fd.get("payload");
+  const parsed = PayloadSchema.safeParse(
+    typeof raw === "string" ? JSON.parse(raw) : raw
+  );
+  if (!parsed.success) throw new Error("Invalid payload");
 
-    // Slots lesen
-    const { data: slots, error: slotsErr } = await supaRead
-      .from("studio_slots")
-      .select("id, capacity, starts_at, ends_at, location_id")
-      .in("id", parsed.studioSlotIds);
+  const { session, studioSlotIds } = parsed.data;
 
-    if (slotsErr) throw new Error(slotsErr.message);
-    const firstSlot = (slots ?? [])[0] as StudioSlotRow | undefined;
-    if (!firstSlot) throw new Error("Keine gültigen Slots gefunden.");
+  const supa = await supabaseServerAction();
+  const { data: auth } = await supa.auth.getUser();
+  const uid = auth.user?.id;
+  if (!uid) throw new Error("Unauthenticated");
 
-    // Location lesen
-    const { data: loc, error: locErr } = await supaRead
-      .from("studio_locations")
-      .select("max_participants, price_per_slot")
-      .eq("id", firstSlot.location_id)
-      .maybeSingle();
+  // Ableiten, welche Location-Spalte gesetzt wird
+  const studio_location_id =
+    session.location_type === "studio_location"
+      ? session.studio_location_id
+      : null;
 
-    if (locErr) throw new Error(locErr.message);
-    if (loc) {
-      if (typeof loc.max_participants === "number")
-        fallbackMax = loc.max_participants;
-      if (typeof loc.price_per_slot === "number")
-        fallbackPrice = loc.price_per_slot;
-    }
+  const self_hosted_location_id =
+    session.location_type === "self_hosted"
+      ? session.self_hosted_location_id
+      : null;
 
-    if (!fallbackMax && firstSlot.capacity) fallbackMax = firstSlot.capacity;
-  }
+  // XOR-Check (spiegelt deinen DB-Constraint)
+  const locCount =
+    (studio_location_id ? 1 : 0) + (self_hosted_location_id ? 1 : 0);
+  if (locCount !== 1) throw new Error("sessions_exactly_one_location ...");
 
-  const max_participants = parsed.session.max_participants ?? fallbackMax ?? 1;
-  const price_cents = parsed.session.price_cents ?? fallbackPrice ?? 0;
-
-  const sessionInsert: SessionInsert = {
+  const insertSession: Database["public"]["Tables"]["sessions"]["Insert"] = {
     expert_user_id: uid,
-    session_type: parsed.session.session_type,
-    location_type: parsed.session.location_type,
-    title: parsed.session.title.trim(),
-    description: parsed.session.description?.trim() || null,
-    duration_minutes: parsed.session.duration_minutes,
-    max_participants,
-    price_cents,
-    tags:
-      parsed.session.tags && parsed.session.tags.length
-        ? parsed.session.tags
-        : null,
-    image_urls:
-      parsed.session.image_urls && parsed.session.image_urls.length
-        ? parsed.session.image_urls
-        : null,
-    equipment:
-      parsed.session.equipment && parsed.session.equipment.length
-        ? parsed.session.equipment
-        : null,
-    is_draft: parsed.session.is_draft ?? false,
-    preparation_minutes: null,
-    // ✅ NEU: Wert aus Payload in die DB schreiben
-    recommended_level: parsed.session.recommended_level ?? null,
+    title: session.title,
+    description: session.description,
+    duration_minutes: session.duration_minutes,
+    equipment: session.equipment,
+    image_urls: session.image_urls,
+    is_draft: session.is_draft,
+    location_type: session.location_type,
+    max_participants: session.max_participants ?? 1,
+    price_cents: session.price_cents ?? 0,
+    recommended_level: session.recommended_level ?? null,
+    session_type: session.session_type,
+    tags: session.tags,
+
+    // ✅ die beiden DB-Spalten
+    studio_location_id,
+    self_hosted_location_id,
   };
 
-  // Session anlegen
-  const { data: newSession, error: insErr } = await supaWrite
+  const { data: s, error: eS } = await supa
     .from("sessions")
-    .insert(sessionInsert)
+    .insert(insertSession)
     .select("id")
-    .maybeSingle();
+    .single();
+  if (eS) throw eS;
 
-  if (insErr) throw new Error(insErr.message);
-  if (!newSession?.id) throw new Error("Session konnte nicht erstellt werden.");
+  const sessionId = s.id;
 
-  // Occurrences für Studio-Slots
-  if (
-    parsed.session.location_type === "studio_location" &&
-    parsed.studioSlotIds.length > 0
-  ) {
-    const supaRead = await supabaseServerRead();
-    const { data: slots, error: slotsErr } = await supaRead
+  // Occurrences nur für Studio-Variante
+  if (session.location_type === "studio_location" && studioSlotIds.length) {
+    const { data: slots, error: eSlots } = await supa
       .from("studio_slots")
       .select("id, starts_at, ends_at, capacity")
-      .in("id", parsed.studioSlotIds);
+      .in("id", studioSlotIds);
+    if (eSlots) throw eSlots;
 
-    if (slotsErr) throw new Error(slotsErr.message);
+    const occ = slots.map(
+      (sl) =>
+        ({
+          session_id: sessionId,
+          studio_slot_id: sl.id,
+          starts_at: sl.starts_at,
+          ends_at: sl.ends_at,
+          capacity: sl.capacity ?? session.max_participants ?? 1,
+        } satisfies Database["public"]["Tables"]["session_occurrences"]["Insert"])
+    );
 
-    const occurrences: SessionOccurrenceInsert[] = (slots ?? []).map((s) => ({
-      session_id: newSession.id,
-      studio_slot_id: s.id,
-      self_hosted_slot_id: null,
-      starts_at: s.starts_at,
-      ends_at: s.ends_at,
-      capacity: s.capacity ?? max_participants,
-    }));
-
-    const { error: occErr } = await supaWrite
-      .from("session_occurrences")
-      .insert(occurrences);
-
-    if (occErr) throw new Error(occErr.message);
+    const { error: eOcc } = await supa.from("session_occurrences").insert(occ);
+    if (eOcc) throw eOcc;
   }
 
-  revalidatePath("/dashboard/motionexpert/sessions");
-  redirect(`/dashboard/motionexpert/sessions`);
+  return { ok: true, sessionId };
 }

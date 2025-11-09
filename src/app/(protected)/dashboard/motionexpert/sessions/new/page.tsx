@@ -4,6 +4,7 @@ import Link from "next/link";
 import { supabaseServerRead } from "@/lib/supabaseServer";
 import NewSessionWizard from "./ui/NewSessionWizard";
 
+export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export default async function NewSessionPage() {

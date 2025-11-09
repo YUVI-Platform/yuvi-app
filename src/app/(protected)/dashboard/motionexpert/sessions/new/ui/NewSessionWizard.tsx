@@ -62,7 +62,7 @@ export default function NewSessionWizard({
   const canNextFrom3 = useMemo(() => {
     if (locationType === "studio_location") return selectedSlotIds.length > 0;
     return true;
-  }, [locationType, selectedSlotIds.length]);
+  }, [locationType, selectedSlotIds]);
 
   const canNextFrom4 = detailsValid;
 
@@ -344,9 +344,9 @@ function WizardChecklist({
     });
     base.push({
       label: "Preis",
-      ok: details.price_cents === null || details.price_cents >= 0,
+      ok: details.price_cents == null || details.price_cents >= 0,
       hint:
-        details.price_cents === null
+        details.price_cents == null
           ? "— (von Location übernehmen)"
           : `${(details.price_cents / 100).toFixed(2)} €`,
     });

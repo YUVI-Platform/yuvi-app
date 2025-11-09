@@ -109,7 +109,7 @@ export default function MobileSessionsMap() {
     setError(null);
 
     // Basis-BBOX-Args
-    const base: BboxArgs = {
+    const base = {
       p_min_lat: bounds.getSouth(),
       p_min_lng: bounds.getWest(),
       p_max_lat: bounds.getNorth(),
@@ -233,7 +233,7 @@ export default function MobileSessionsMap() {
       </Map>
 
       {/* Top Filters */}
-      <div className="absolute left-0 right-0 top-2 z-10 mx-auto w-[min(680px,95%)] rounded-2xl border border-slate-200 bg-white/95 p-2 shadow-xl">
+      <div className="hidden absolute left-0 right-0 top-2 z-10 mx-auto w-[min(680px,95%)] rounded-2xl border border-slate-200 bg-white/95 p-2 shadow-xl">
         <div className="flex flex-wrap items-center gap-2">
           <input
             className="flex-1 rounded-xl border border-slate-300 px-3 py-2 text-sm"

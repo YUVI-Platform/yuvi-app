@@ -1,4 +1,5 @@
 // src/app/(protected)/dashboard/studioHost/locations/new/page.tsx
+import "server-only";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -49,7 +50,7 @@ const jsonArray = z.string().transform((s) => {
 const optionalMoneyEUR = z
   .preprocess(
     (val) => (val === "" || val == null ? undefined : val),
-    z.coerce.number().min(0).max(10000) // 0–10.000 EUR als sinnvolle Range
+    z.coerce.number().min(0).max(10000)
   )
   .optional();
 
@@ -65,7 +66,6 @@ const schema = z.object({
   area_sqm: z.coerce.number().int().min(1).max(100000).optional(),
   max_participants: z.coerce.number().int().min(1).max(5000),
 
-  // 🆕 Preis pro Slot in EUR (optional, im UI eingegeben)
   price_per_slot_eur: optionalMoneyEUR,
 
   amenities_json: jsonArray,
@@ -107,7 +107,6 @@ export default async function NewLocationPage() {
       area_sqm: formData.get("area_sqm"),
       max_participants: formData.get("max_participants"),
 
-      // 🆕 Preis (EUR) kommt als String
       price_per_slot_eur: formData.get("price_per_slot_eur"),
 
       amenities_json: formData.get("amenities_json") ?? "[]",
@@ -129,11 +128,9 @@ export default async function NewLocationPage() {
       country: v.country,
     };
 
-    // EUR → Cents (integer) oder null
-    const pricePerSlotCents =
-      typeof v.price_per_slot_eur === "number"
-        ? Math.round(v.price_per_slot_eur * 100)
-        : null;
+    // Geocoding nur innerhalb der Action laden/ausführen
+    const { geocodeAddress } = await import("@/server/geocode");
+    const coords = await geocodeAddress(address).catch(() => null);
 
     const supaWrite = await supabaseServerAction();
     const { data: userData } = await supaWrite.auth.getUser();
@@ -143,8 +140,8 @@ export default async function NewLocationPage() {
     }
 
     const payload: TablesInsert<"studio_locations"> = {
-      host_user_id: currentUid,
-      owner_user_id: currentUid,
+      host_user_id: currentUid!,
+      owner_user_id: currentUid!,
       title: v.title,
       address,
       description: v.description || null,
@@ -155,9 +152,12 @@ export default async function NewLocationPage() {
       image_urls: v.image_urls_json.length ? v.image_urls_json : null,
       house_rules: v.house_rules || null,
       is_draft: v.is_draft ?? true,
-      // 🆕 jetzt befüllt
-      price_per_slot: pricePerSlotCents,
-    };
+      price_per_slot:
+        typeof v.price_per_slot_eur === "number"
+          ? Math.round(v.price_per_slot_eur * 100)
+          : null,
+      ...(coords ? { lat: coords.lat, lng: coords.lng } : {}),
+    } as any; // falls deine Supabase-Types lat/lng noch nicht enthalten
 
     const { error } = await supaWrite.from("studio_locations").insert(payload);
     if (error) throw new Error(error.message);
@@ -253,7 +253,6 @@ export default async function NewLocationPage() {
             />
           </div>
 
-          {/* 🆕 Preis */}
           <div className="space-y-1 sm:col-span-2">
             <label className="text-sm font-medium">Preis pro Slot (EUR)</label>
             <input

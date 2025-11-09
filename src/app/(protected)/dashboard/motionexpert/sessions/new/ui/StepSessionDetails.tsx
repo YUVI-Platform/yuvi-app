@@ -9,13 +9,15 @@ export type SessionDetails = {
   title: string;
   description?: string;
   duration_min: number;
-  capacity: number | null;
-  tags: string[];
-  price_cents: number | null;
-  recommended_level?: string | null;
-  image_url: string | null;
-};
+  capacity?: number | null;
+  price_cents?: number | null;
+  tags?: string[];
+  image_url?: string | null;
+  recommended_level?: "beginner" | "intermediate" | "advanced" | null;
 
+  // ✅ neu: Self-Hosted Location per ID referenzieren
+  self_hosted_location_id?: string | null;
+};
 type LocationLite = {
   id: string;
   max_participants: number | null;
@@ -52,6 +54,9 @@ const PRESET_TAGS = [
   "Recovery",
   "Stretching",
 ] as const;
+
+const LEVELS = ["beginner", "intermediate", "advanced"] as const;
+type Level = (typeof LEVELS)[number];
 
 export default function StepSessionDetails({
   defaultValues,
@@ -90,15 +95,17 @@ export default function StepSessionDetails({
     return cents >= 0 ? cents : null;
   }, [priceEuro]);
 
-  const [imageUrl, setImageUrl] = useState(defaultValues?.image_url ?? "");
+  const [imageUrl, setImageUrl] = useState<string>(
+    defaultValues?.image_url ?? ""
+  );
   const [uploadPreview, setUploadPreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
   const [tags, setTags] = useState<string[]>(defaultValues?.tags ?? []);
   const [tagInput, setTagInput] = useState("");
-  const [fitnessLevel, setFitnessLevel] = useState<string>(
-    defaultValues?.recommended_level ?? ""
+  const [fitnessLevel, setFitnessLevel] = useState<Level | "">(
+    (defaultValues?.recommended_level ?? "") as Level | ""
   );
 
   // ---------- Location-Daten ----------
@@ -166,6 +173,13 @@ export default function StepSessionDetails({
     }
   }, [locMax, capacity]);
 
+  useEffect(() => {
+    return () => {
+      if (uploadPreview?.startsWith("blob:"))
+        URL.revokeObjectURL(uploadPreview);
+    };
+  }, [uploadPreview]);
+
   // ---------- Validation ----------
   const isValid = useMemo(() => {
     if (title.trim().length < 3) return false;
@@ -186,17 +200,24 @@ export default function StepSessionDetails({
   }, [isValid, onValidChange]);
 
   // ---------- Upstream sync ----------
+  // ---------- Upstream sync ----------
   useEffect(() => {
-    onChange({
+    const payload: SessionDetails = {
       title: title.trim(),
       description: description?.trim() || "",
       duration_min: durationMin,
       capacity: capacity === "" ? null : Number(capacity),
       tags,
       price_cents,
-      image_url: imageUrl?.trim() ? imageUrl.trim() : null,
-      recommended_level: fitnessLevel ? fitnessLevel : null,
-    });
+      // ⬇️ wichtig
+      recommended_level: fitnessLevel === "" ? null : fitnessLevel,
+      self_hosted_location_id: defaultValues?.self_hosted_location_id ?? null,
+    };
+    // image_url nur setzen, wenn vorhanden (deins ist ok)
+    const trimmed = imageUrl?.trim();
+    if (trimmed) (payload as any).image_url = trimmed;
+
+    onChange(payload);
   }, [
     title,
     description,
@@ -207,6 +228,7 @@ export default function StepSessionDetails({
     imageUrl,
     fitnessLevel,
     onChange,
+    defaultValues?.self_hosted_location_id,
   ]);
 
   // ---------- Helpers ----------
@@ -529,7 +551,11 @@ export default function StepSessionDetails({
         <label className="text-sm font-medium">Fitness Level</label>
         <select
           value={fitnessLevel}
-          onChange={(e) => setFitnessLevel(e.target.value)}
+          onChange={(e) => {
+            const val = e.target.value as Level | "";
+            // optional: Guard gegen unzulässige Werte
+            if (val === "" || LEVELS.includes(val)) setFitnessLevel(val);
+          }}
           className="w-full rounded-md border px-3 py-2"
         >
           <option value="">Bitte wählen</option>
@@ -687,7 +713,8 @@ export default function StepSessionDetails({
 
       {!isValid && (
         <div className="rounded-md border border-rose-300 bg-rose-50 px-3 py-2 text-sm text-rose-700">
-          Bitte Titel (≥3), Dauer (30/60), Kapazität & Preis prüfen.
+          Bitte eingabe überprüfen. Alle mit * markierten Felder sind
+          erforderlich und müssen korrekt ausgefüllt sein.
         </div>
       )}
     </section>
