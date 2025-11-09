@@ -1,5 +1,4 @@
 // src/app/(protected)/dashboard/studioHost/locations/[id]/edit/page.tsx
-
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { supabaseServerRead } from "@/lib/supabaseServer";
@@ -32,6 +31,8 @@ type LocationRow = {
   is_draft: boolean | null;
   owner_user_id: string;
   host_user_id: string | null;
+  /** 🆕 in Cents in der DB */
+  price_per_slot: number | null;
 };
 
 /* ===================== Optionen ===================== */
@@ -66,7 +67,7 @@ export default async function EditLocationPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = await params; // Next 15: async params
+  const { id } = await params;
 
   const supa = await supabaseServerRead();
   const { data: me } = await supa.auth.getUser();
@@ -77,10 +78,11 @@ export default async function EditLocationPage({
   const { data: loc, error } = await supa
     .from("studio_locations")
     .select<
-      "id,title,description,address,image_urls,amenities,allowed_tags,max_participants,area_sqm,house_rules,is_draft,owner_user_id,host_user_id",
+      // Spaltenliste + zugehöriger Row-Typ
+      "id,title,description,address,image_urls,amenities,allowed_tags,max_participants,area_sqm,house_rules,is_draft,owner_user_id,host_user_id,price_per_slot",
       LocationRow
     >(
-      "id,title,description,address,image_urls,amenities,allowed_tags,max_participants,area_sqm,house_rules,is_draft,owner_user_id,host_user_id"
+      "id,title,description,address,image_urls,amenities,allowed_tags,max_participants,area_sqm,house_rules,is_draft,owner_user_id,host_user_id,price_per_slot"
     )
     .eq("id", id)
     .maybeSingle();
@@ -98,6 +100,12 @@ export default async function EditLocationPage({
   const initialAmenities: string[] = loc.amenities ?? [];
   const initialTags: string[] = loc.allowed_tags ?? [];
   const initialImages: string[] = loc.image_urls ?? [];
+
+  // 🧮 EUR-String für defaultValue
+  const priceEurDefault =
+    typeof loc.price_per_slot === "number" && loc.price_per_slot >= 0
+      ? (loc.price_per_slot / 100).toFixed(2)
+      : "";
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -212,6 +220,26 @@ export default async function EditLocationPage({
               className="w-full rounded-md border px-3 py-2"
             />
           </div>
+
+          {/* 🆕 Preis pro Slot (EUR) */}
+          <div className="sm:col-span-2 space-y-1">
+            <label className="text-sm font-medium">Preis pro Slot (EUR)</label>
+            <input
+              name="price_per_slot_eur"
+              type="number"
+              inputMode="decimal"
+              min={0}
+              step="0.01"
+              defaultValue={priceEurDefault}
+              placeholder="z. B. 25.00"
+              className="w-full rounded-md border px-3 py-2"
+            />
+            <p className="text-xs text-slate-500">
+              Intern in Cent gespeichert. Leer lassen für keinen festen
+              Slot-Preis.
+            </p>
+          </div>
+
           <div className="sm:col-span-2 space-y-1">
             <label className="text-sm font-medium">Hausregeln (optional)</label>
             <textarea

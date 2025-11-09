@@ -44,9 +44,9 @@ export default function LoginClient() {
         </div>
         <button
           type="submit"
-          className="w-full rounded-md bg-black px-4 py-2 text-white"
+          className="w-full rounded-md bg-yuvi-skyblue border px-4 py-2 text-white hover:bg-yuvi-skyblue-dark cursor-pointer font-fancy"
         >
-          Einloggen
+          GET MOVIN
         </button>
       </form>
     </>

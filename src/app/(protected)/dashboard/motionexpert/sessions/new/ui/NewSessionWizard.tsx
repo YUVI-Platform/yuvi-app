@@ -20,6 +20,7 @@ export type LocationOption = {
   } | null;
   image_urls: string[] | null;
   max_participants: number | null;
+  price_per_slot: number | null;
 };
 
 type Steps = 1 | 2 | 3 | 4 | 5;
@@ -118,6 +119,23 @@ export default function NewSessionWizard({
 
       {step === 4 && (
         <StepSessionDetails
+          // Bevorzugt die fertige Location übergeben (inkl. max + price)
+          location={
+            locationType === "studio_location" && pickedStudio
+              ? {
+                  id: pickedStudio.id,
+                  max_participants: pickedStudio.max_participants,
+                  price_per_slot: pickedStudio.price_per_slot ?? null,
+                  title: pickedStudio.title,
+                }
+              : null
+          }
+          // Fallback: zusätzlich (oder alternativ) die ID durchreichen
+          locationId={
+            locationType === "studio_location"
+              ? studioId ?? undefined
+              : undefined
+          }
           defaultValues={details}
           onChange={setDetails}
           onValidChange={setDetailsValid}

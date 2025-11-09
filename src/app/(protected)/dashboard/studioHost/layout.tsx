@@ -2,14 +2,23 @@
 import "@/app/globals.css";
 import { ReactNode } from "react";
 import Link from "next/link";
-import { supabaseServerRead } from "@/lib/supabaseServer";
+import { supabaseServerAction, supabaseServerRead } from "@/lib/supabaseServer";
 import { redirect } from "next/navigation";
 import {
   Building2,
-  CalendarClock,
   ClipboardList,
+  LayoutDashboardIcon,
+  LogOut,
   PlusCircle,
+  User2Icon,
 } from "lucide-react";
+
+async function signOutAction() {
+  "use server";
+  const supa = await supabaseServerAction();
+  await supa.auth.signOut();
+  redirect("/login");
+}
 
 export default async function StudioHostLayout({
   children,
@@ -34,46 +43,60 @@ export default async function StudioHostLayout({
   if (!isStudioHost) redirect("/dashboard"); // kein Zugriff auf studiohost-Dashboard
 
   return (
-    <div className="min-h-[100svh] grid grid-cols-[400px_1fr] bg-background">
+    <div className="h-screen max-h-screen grid grid-cols-[300px_1fr] bg-background">
       {/* Sidebar */}
-      <aside className="border-r bg-white rounded-4xl m-6">
-        <div className="p-4">
-          <Link
-            href="/"
-            className="inline-block text-7xl font-bold tracking-tight font-fancy text-yuvi-rose"
-          >
-            YUVi
-          </Link>
+      <aside className="border-r bg-white rounded-4xl m-6 flex flex-col justify-between overflow-hidden">
+        <div>
+          <div className="p-4">
+            <Link
+              href="/dashboard/studiohost"
+              className="inline-block text-7xl font-bold tracking-tight font-fancy text-yuvi-rose"
+            >
+              YUVi
+            </Link>
+          </div>
+          <nav className="px-2 py-4 space-y-1">
+            <NavItem
+              href="/dashboard/studiohost"
+              label="Overview"
+              icon={<LayoutDashboardIcon size={18} />}
+            />
+            <NavItem
+              href="/dashboard/studiohost/locations"
+              label="Locations"
+              icon={<Building2 size={18} />}
+            />
+
+            <NavItem
+              href="/dashboard/studiohost/bookings"
+              label="Bookings"
+              icon={<ClipboardList size={18} />}
+            />
+            <div className="pt-3 mt-3 border-t" />
+
+            <NavItem
+              href="/dashboard/studiohost/locations/new"
+              label="New Location"
+              icon={<PlusCircle size={18} />}
+            />
+            <NavItem
+              href="/dashboard/studiohost/profile"
+              label="Profile"
+              icon={<User2Icon size={18} />}
+            />
+          </nav>
         </div>
-        <nav className="px-2 py-4 space-y-1">
-          <NavItem href="/dashboard/studiohost" label="Overview" />
-          <NavItem
-            href="/dashboard/studiohost/locations"
-            label="Locations"
-            icon={<Building2 size={18} />}
-          />
-          <NavItem
-            href="/dashboard/studiohost/sessions"
-            label="Sessions"
-            icon={<CalendarClock size={18} />}
-          />
-          <NavItem
-            href="/dashboard/studiohost/bookings"
-            label="Bookings"
-            icon={<ClipboardList size={18} />}
-          />
-          <div className="pt-3 mt-3 border-t" />
-          <NavItem
-            href="/dashboard/studiohost/sessions/new"
-            label="New Session"
-            icon={<PlusCircle size={18} />}
-          />
-          <NavItem
-            href="/dashboard/studiohost/locations/new"
-            label="New Location"
-            icon={<PlusCircle size={18} />}
-          />
-        </nav>
+
+        <form action={signOutAction} className="px-2 py-4 space-y-4">
+          <button
+            type="submit"
+            className="inline-flex items-center gap-2 rounded-md border border-red-500 px-3 py-1.5 text-sm text-red-500 cursor-pointer hover:bg-red-500/40"
+            title="Logout"
+          >
+            <LogOut size={16} className="opacity-70" />
+            Logout
+          </button>
+        </form>
       </aside>
 
       {/* Content */}
@@ -104,7 +127,7 @@ function NavItem({
   return (
     <Link
       href={href}
-      className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-slate-700 hover:bg-slate-100"
+      className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-slate-700 hover:bg-yuvi-skyblue/10 hover:text-yuvi-skyblue font-medium"
     >
       {icon && <span className="opacity-70">{icon}</span>}
       <span>{label}</span>

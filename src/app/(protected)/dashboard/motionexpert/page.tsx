@@ -48,8 +48,10 @@ export default async function MotionExpertOverviewPage() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-semibold tracking-tight">
-          Willkommen {profile?.name || user.email?.split("@")[0] || "Pro"}
+        <h2 className="text-5xl font-semibold tracking-tight text-yuvi-skyblue font-fancy">
+          {`Hey ${
+            profile?.name || user.email?.split("@")[0] || "Pro"
+          }!`.toUpperCase()}
         </h2>
         <p className="text-sm text-slate-600">{mep.stateLabel}</p>
       </div>

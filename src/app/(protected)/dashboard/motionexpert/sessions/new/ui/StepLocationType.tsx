@@ -85,6 +85,14 @@ export default function StepLocationType({
               const addr = l.address;
               const img =
                 (l.image_urls && l.image_urls[0]) || "/placeholder.jpg";
+              const slot_price =
+                typeof l.price_per_slot === "number"
+                  ? new Intl.NumberFormat("de-DE", {
+                      style: "currency",
+                      currency: "EUR",
+                      maximumFractionDigits: 2,
+                    }).format(l.price_per_slot / 100)
+                  : "—";
               return (
                 <article
                   key={l.id}
@@ -120,6 +128,10 @@ export default function StepLocationType({
                       {typeof l.max_participants === "number"
                         ? l.max_participants
                         : "—"}
+                    </div>
+                    <div className="mt-1 text-xs text-slate-500">
+                      Slot-Preis: {slot_price}
+                      EUR
                     </div>
                   </button>
 

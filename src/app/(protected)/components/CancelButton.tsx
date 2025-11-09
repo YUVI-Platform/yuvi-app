@@ -1,14 +1,38 @@
 // app/(protected)/components/CancelButton.tsx
-import { cancelMyBookingAction } from "./cancelMyBookingAction";
-import SubmitButton from "./SubmitButton"; // darf Client sein
+"use client";
 
-export default function CancelButton({ bookingId }: { bookingId: string }) {
+import { useActionState } from "react";
+import {
+  cancelMyBookingAction,
+  type ActionState,
+} from "./cancelMyBookingAction";
+
+export default function CancelButton({
+  bookingId,
+  path,
+}: {
+  bookingId: string;
+  path: string;
+}) {
+  const [state, formAction, pending] = useActionState<ActionState, FormData>(
+    cancelMyBookingAction,
+    { ok: true }
+  );
+
   return (
-    <form action={cancelMyBookingAction} className="inline-block">
+    <form action={formAction} className="inline-block">
       <input type="hidden" name="bookingId" value={bookingId} />
-      <SubmitButton className="inline-flex items-center justify-center rounded-lg px-4 py-2 bg-rose-600 text-white disabled:opacity-50">
-        Buchung stornieren
-      </SubmitButton>
+      <input type="hidden" name="path" value={path} />
+      <button
+        type="submit"
+        disabled={pending}
+        className="rounded-lg bg-rose-600 px-4 py-2 text-white hover:bg-rose-700 disabled:opacity-50 cursor-pointer"
+      >
+        {pending ? "Storniere…" : "Session canceln"}
+      </button>
+      {state && "ok" in state && !state.ok && (
+        <p className="mt-2 text-sm text-rose-600">{state.error}</p>
+      )}
     </form>
   );
 }

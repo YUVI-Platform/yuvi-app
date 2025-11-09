@@ -1,3 +1,4 @@
+"use client";
 import { usePathname } from "next/navigation";
 import Header from "../components/ui/Navigation/Header";
 import Footer from "../components/ui/Navigation/Footer";
@@ -8,8 +9,7 @@ export default function ClientLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const isDashboard =
-    pathname.includes("/dashboard") || pathname.includes("/login");
+  const isDashboard = pathname.includes("/dashboard");
 
   return (
     <>

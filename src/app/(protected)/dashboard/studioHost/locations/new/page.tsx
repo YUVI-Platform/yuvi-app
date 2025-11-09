@@ -9,7 +9,7 @@ import ImageMultiUpload from "./ui/ImageMultiUpload";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import type { TablesInsert } from "@/types/supabase";
 
-// fixe Optionen (MVP, zentral gepflegt) – NICHT exportieren!
+// fixe Optionen (MVP)
 const AMENITIES_OPTIONS = [
   "WLAN",
   "Toiletten",
@@ -22,7 +22,6 @@ const AMENITIES_OPTIONS = [
   "Trinkwasser",
   "Klimaanlage",
 ];
-
 const TAG_OPTIONS = [
   "Yoga",
   "HIIT",
@@ -46,6 +45,14 @@ const jsonArray = z.string().transform((s) => {
   }
 });
 
+// Leere Eingabe zulassen und Zahl coercen
+const optionalMoneyEUR = z
+  .preprocess(
+    (val) => (val === "" || val == null ? undefined : val),
+    z.coerce.number().min(0).max(10000) // 0–10.000 EUR als sinnvolle Range
+  )
+  .optional();
+
 const schema = z.object({
   title: z.string().min(3).max(160),
   description: z.string().max(2000).optional().default(""),
@@ -58,6 +65,9 @@ const schema = z.object({
   area_sqm: z.coerce.number().int().min(1).max(100000).optional(),
   max_participants: z.coerce.number().int().min(1).max(5000),
 
+  // 🆕 Preis pro Slot in EUR (optional, im UI eingegeben)
+  price_per_slot_eur: optionalMoneyEUR,
+
   amenities_json: jsonArray,
   allowed_tags_json: jsonArray,
   image_urls_json: jsonArray,
@@ -67,7 +77,6 @@ const schema = z.object({
 });
 
 export default async function NewLocationPage() {
-  // Session & Rolle
   const supa = await supabaseServerRead();
   const { data: me } = await supa.auth.getUser();
   if (!me?.user)
@@ -83,8 +92,6 @@ export default async function NewLocationPage() {
   );
   if (!isStudioHost) redirect("/dashboard");
 
-  // Server Action
-  // Server Action
   async function createLocation(formData: FormData): Promise<void> {
     "use server";
 
@@ -99,6 +106,9 @@ export default async function NewLocationPage() {
 
       area_sqm: formData.get("area_sqm"),
       max_participants: formData.get("max_participants"),
+
+      // 🆕 Preis (EUR) kommt als String
+      price_per_slot_eur: formData.get("price_per_slot_eur"),
 
       amenities_json: formData.get("amenities_json") ?? "[]",
       allowed_tags_json: formData.get("allowed_tags_json") ?? "[]",
@@ -119,6 +129,12 @@ export default async function NewLocationPage() {
       country: v.country,
     };
 
+    // EUR → Cents (integer) oder null
+    const pricePerSlotCents =
+      typeof v.price_per_slot_eur === "number"
+        ? Math.round(v.price_per_slot_eur * 100)
+        : null;
+
     const supaWrite = await supabaseServerAction();
     const { data: userData } = await supaWrite.auth.getUser();
     const currentUid = userData.user?.id;
@@ -126,21 +142,21 @@ export default async function NewLocationPage() {
       redirect("/login?redirectTo=/dashboard/studiohost/locations/new");
     }
 
-    // Insert-Payload strikt typisieren, damit der richtige Overload greift
     const payload: TablesInsert<"studio_locations"> = {
-      host_user_id: currentUid, // required string ✅
-      owner_user_id: currentUid, // optional, aber ok
-      title: v.title, // required string ✅
-      address, // required Json ✅
+      host_user_id: currentUid,
+      owner_user_id: currentUid,
+      title: v.title,
+      address,
       description: v.description || null,
       area_sqm: v.area_sqm ?? null,
-      max_participants: v.max_participants, // required number ✅
+      max_participants: v.max_participants,
       amenities: v.amenities_json.length ? v.amenities_json : null,
       allowed_tags: v.allowed_tags_json.length ? v.allowed_tags_json : null,
       image_urls: v.image_urls_json.length ? v.image_urls_json : null,
       house_rules: v.house_rules || null,
       is_draft: v.is_draft ?? true,
-      // price_per_slot kannst du später setzen, ist optional
+      // 🆕 jetzt befüllt
+      price_per_slot: pricePerSlotCents,
     };
 
     const { error } = await supaWrite.from("studio_locations").insert(payload);
@@ -214,7 +230,7 @@ export default async function NewLocationPage() {
           </div>
         </section>
 
-        {/* Kapazität / Fläche / Regeln */}
+        {/* Kapazität / Fläche / Preis / Regeln */}
         <section className="rounded-xl border bg-white p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1">
             <label className="text-sm font-medium">Max. Teilnehmer</label>
@@ -236,6 +252,25 @@ export default async function NewLocationPage() {
               placeholder="optional"
             />
           </div>
+
+          {/* 🆕 Preis */}
+          <div className="space-y-1 sm:col-span-2">
+            <label className="text-sm font-medium">Preis pro Slot (EUR)</label>
+            <input
+              name="price_per_slot_eur"
+              type="number"
+              inputMode="decimal"
+              min={0}
+              step="0.01"
+              placeholder="z. B. 25.00"
+              className="w-full rounded-md border px-3 py-2"
+            />
+            <p className="text-xs text-slate-500">
+              Wird intern in Cent gespeichert. Leer lassen, wenn die Location
+              (noch) keinen festen Slot-Preis hat.
+            </p>
+          </div>
+
           <div className="sm:col-span-2 space-y-1">
             <label className="text-sm font-medium">Hausregeln (optional)</label>
             <textarea

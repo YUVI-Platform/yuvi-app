@@ -6,7 +6,6 @@ import { redirect } from "next/navigation";
 import {
   AlertTriangle,
   Building2,
-  CalendarClock,
   ClipboardList,
   PlusCircle,
 } from "lucide-react";
@@ -45,16 +44,16 @@ export default async function StudioHostOverviewPage() {
   ]);
 
   // Sanfte Counts (fehlende Tabellen werden abgefangen)
-  const { locationsCount, sessionsCount, pendingBookingsCount, errors } =
-    await getCountsSafe(supa, user.id);
-
-  const emptyState = (locationsCount ?? 0) === 0 || (sessionsCount ?? 0) === 0;
+  const { locationsCount, pendingBookingsCount, errors } = await getCountsSafe(
+    supa,
+    user.id
+  );
 
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-2xl font-semibold tracking-tight">
-          Willkommen {profile?.name || user.email?.split("@")[0] || "Host"}
+        <h2 className="text-5xl font-semibold tracking-tight font-fancy text-yuvi-skyblue">
+          {(profile?.name || user.email?.split("@")[0] || "Host").toUpperCase()}
         </h2>
         <p className="text-sm text-slate-600">
           {sh?.company
@@ -71,14 +70,9 @@ export default async function StudioHostOverviewPage() {
           label="New Location"
         />
         <Action
-          href="/dashboard/studiohost/sessions/new"
-          icon={<PlusCircle />}
-          label="New Session"
-        />
-        <Action
-          href="/dashboard/studiohost/sessions"
-          icon={<CalendarClock />}
-          label="Manage Sessions"
+          href="/dashboard/studiohost/locations"
+          icon={<Building2 />}
+          label="Manage Locations"
         />
         <Action
           href="/dashboard/studiohost/bookings"
@@ -92,22 +86,22 @@ export default async function StudioHostOverviewPage() {
         <Stat
           label="Locations"
           value={locationsCount ?? "—"}
-          icon={<Building2 className="opacity-60" size={18} />}
+          icon={
+            <Building2 className="opacity-60 text-yuvi-skyblue" size={18} />
+          }
         />
-        <Stat
-          label="Upcoming Sessions"
-          value={sessionsCount ?? "—"}
-          icon={<CalendarClock className="opacity-60" size={18} />}
-        />
+
         <Stat
           label="Pending Bookings"
           value={pendingBookingsCount ?? "—"}
-          icon={<ClipboardList className="opacity-60" size={18} />}
+          icon={
+            <ClipboardList className="opacity-60 text-yuvi-skyblue" size={18} />
+          }
         />
       </div>
 
       {/* Setup Callouts */}
-      {emptyState && (
+      {!locationsCount && (
         <div className="rounded-xl border bg-white p-5">
           <div className="flex items-start gap-3">
             <div className="mt-1 text-amber-600">
@@ -166,7 +160,7 @@ function Action({
   return (
     <Link
       href={href}
-      className="flex items-center gap-2 rounded-xl border bg-white px-4 py-3 text-sm hover:bg-slate-50"
+      className="flex items-center gap-2 rounded-xl border bg-white px-4 py-3 text-sm hover:bg-yuvi-skyblue hover:text-white transition"
     >
       <span>{icon}</span>
       <span className="font-medium">{label}</span>
@@ -186,10 +180,12 @@ function Stat({
   return (
     <div className="rounded-xl border bg-white p-5">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-slate-600">{label}</p>
+        <p className="text-sm">{label}</p>
         {icon}
       </div>
-      <p className="mt-2 text-2xl font-semibold">{value}</p>
+      <p className="mt-2 text-5xl font-semibold font-fancy text-yuvi-skyblue">
+        {value}
+      </p>
     </div>
   );
 }

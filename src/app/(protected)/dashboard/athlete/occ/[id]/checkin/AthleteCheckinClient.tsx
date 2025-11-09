@@ -19,6 +19,7 @@ export default function AthleteCheckinClient({
   const [err, setErr] = React.useState("");
   const [scanOpen, setScanOpen] = React.useState(false);
 
+  // Auto-Check-in wenn ?code=... vorhanden
   React.useEffect(() => {
     if (!initialCode) return;
     (async () => {
@@ -37,6 +38,10 @@ export default function AthleteCheckinClient({
   }, [occurrenceId, initialCode]);
 
   function handleDetected(text: string) {
+    // Reset Status für erneuten Versuch
+    setOk(null);
+    setErr("");
+
     try {
       const u = new URL(text, window.location.origin);
       const c = u.searchParams.get("code") ?? "";
@@ -54,7 +59,15 @@ export default function AthleteCheckinClient({
       router.replace(`?code=${encodeURIComponent(c)}`);
       setCode(c);
     } catch {
-      setErr("Ungültiger QR-Inhalt.");
+      // Falls der QR nur den Code enthält (kein URL-Format), akzeptieren:
+      const plain = text?.trim();
+      if (plain) {
+        setScanOpen(false);
+        setCode(plain);
+        router.replace(`?code=${encodeURIComponent(plain)}`);
+      } else {
+        setErr("Ungültiger QR-Inhalt.");
+      }
     }
   }
 
@@ -65,6 +78,7 @@ export default function AthleteCheckinClient({
         return;
       }
       setLoading(true);
+      setOk(null);
       await athleteCheckinAction(occurrenceId, code);
       setOk(true);
       setErr("");
@@ -79,6 +93,7 @@ export default function AthleteCheckinClient({
   return (
     <div className="mx-auto max-w-md p-6 space-y-6">
       <h1 className="text-2xl font-semibold">Teilnahme bestätigen</h1>
+
       {loading && (
         <div className="rounded-md border p-3 text-sm">Check-in läuft…</div>
       )}
@@ -99,7 +114,11 @@ export default function AthleteCheckinClient({
           className="w-full rounded-md border px-3 py-2"
           placeholder="6–12-stelliger Code"
           value={code}
-          onChange={(e) => setCode(e.target.value)}
+          onChange={(e) => {
+            setOk(null);
+            setErr("");
+            setCode(e.target.value);
+          }}
           inputMode="numeric"
         />
         <div className="flex gap-2">
@@ -113,7 +132,11 @@ export default function AthleteCheckinClient({
           </button>
           <button
             type="button"
-            onClick={() => setScanOpen(true)}
+            onClick={() => {
+              setOk(null);
+              setErr("");
+              setScanOpen(true);
+            }}
             className="rounded-md border px-3 py-1.5 text-sm"
           >
             QR scannen

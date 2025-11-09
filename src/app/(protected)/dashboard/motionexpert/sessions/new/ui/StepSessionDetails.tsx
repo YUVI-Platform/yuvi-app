@@ -1,7 +1,7 @@
 // src/app/(protected)/dashboard/motionexpert/sessions/new/ui/StepSessionDetails.tsx
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
 import { supabaseBrowser } from "@/lib/supabaseBrowser";
 
@@ -16,14 +16,25 @@ export type SessionDetails = {
   image_url: string | null;
 };
 
+type LocationLite = {
+  id: string;
+  max_participants: number | null;
+  price_per_slot: number | null; // cents
+  title?: string | null;
+};
+
 type Props = {
   defaultValues?: Partial<SessionDetails>;
   onChange: (v: SessionDetails) => void;
   onValidChange?: (valid: boolean) => void;
+
+  /** Bevorzugt: komplette Location reinreichen */
+  location?: LocationLite | null;
+  /** Fallback: nur die ID – dann wird max/price geladen */
+  locationId?: string;
 };
 
 const ALLOWED_DURATIONS = [30, 60] as const;
-
 const PRESET_TAGS = [
   "HIIT",
   "Strength",
@@ -46,35 +57,32 @@ export default function StepSessionDetails({
   defaultValues,
   onChange,
   onValidChange,
+  location,
+  locationId,
 }: Props) {
+  // ---------- Basestates ----------
   const [title, setTitle] = useState(defaultValues?.title ?? "");
   const [description, setDescription] = useState(
     defaultValues?.description ?? ""
   );
-
-  const initialDuration =
+  const [durationMin, setDurationMin] = useState<30 | 60>(
     defaultValues?.duration_min === 30 || defaultValues?.duration_min === 60
       ? (defaultValues.duration_min as 30 | 60)
-      : 60;
-  const [durationMin, setDurationMin] = useState<30 | 60>(initialDuration);
+      : 60
+  );
 
+  // Kapazität: "" bedeutet „von Location übernehmen“
   const [capacity, setCapacity] = useState<number | "">(
     defaultValues?.capacity ?? ""
   );
 
+  // Preis (EUR Eingabe -> cents intern)
   const [priceEuro, setPriceEuro] = useState<string>(() => {
     if (typeof defaultValues?.price_cents === "number") {
       return (defaultValues.price_cents / 100).toFixed(2);
     }
     return "";
   });
-
-  const [imageUrl, setImageUrl] = useState(defaultValues?.image_url ?? "");
-  const [uploadPreview, setUploadPreview] = useState<string | null>(null);
-
-  const [tags, setTags] = useState<string[]>(defaultValues?.tags ?? []);
-  const [tagInput, setTagInput] = useState("");
-
   const price_cents = useMemo(() => {
     const n = Number(String(priceEuro).replace(",", "."));
     if (!Number.isFinite(n) || String(priceEuro).trim() === "") return null;
@@ -82,10 +90,83 @@ export default function StepSessionDetails({
     return cents >= 0 ? cents : null;
   }, [priceEuro]);
 
+  const [imageUrl, setImageUrl] = useState(defaultValues?.image_url ?? "");
+  const [uploadPreview, setUploadPreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  const [tags, setTags] = useState<string[]>(defaultValues?.tags ?? []);
+  const [tagInput, setTagInput] = useState("");
   const [fitnessLevel, setFitnessLevel] = useState<string>(
     defaultValues?.recommended_level ?? ""
   );
 
+  // ---------- Location-Daten ----------
+  const [locMax, setLocMax] = useState<number | null>(null);
+  const [locPriceCents, setLocPriceCents] = useState<number | null>(null);
+
+  // 1) Wenn Location-Objekt kommt: direkt übernehmen
+  useEffect(() => {
+    if (!location) return;
+    setLocMax(
+      typeof location.max_participants === "number"
+        ? location.max_participants
+        : null
+    );
+    setLocPriceCents(
+      typeof location.price_per_slot === "number"
+        ? location.price_per_slot
+        : null
+    );
+    if (capacity === "" && typeof location.max_participants === "number") {
+      setCapacity(location.max_participants);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location?.id]);
+
+  // 2) Fallback: nur ID -> fetch
+  useEffect(() => {
+    let cancelled = false;
+    async function loadById() {
+      if (location || !locationId) return;
+      const supa = supabaseBrowser();
+      const { data, error } = await supa
+        .from("studio_locations")
+        .select("max_participants, price_per_slot")
+        .eq("id", locationId)
+        .maybeSingle();
+      if (cancelled) return;
+      if (error) {
+        console.error(error);
+        setLocMax(null);
+        setLocPriceCents(null);
+        return;
+      }
+      const maxP =
+        typeof data?.max_participants === "number"
+          ? data.max_participants
+          : null;
+      setLocMax(maxP);
+      setLocPriceCents(
+        typeof data?.price_per_slot === "number" ? data.price_per_slot : null
+      );
+      if (capacity === "" && typeof maxP === "number") setCapacity(maxP);
+    }
+    loadById();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [locationId]);
+
+  // Wenn locMax sich ändert: ggf. clampen
+  useEffect(() => {
+    if (locMax && typeof capacity === "number" && capacity > locMax) {
+      setCapacity(locMax);
+    }
+  }, [locMax, capacity]);
+
+  // ---------- Validation ----------
   const isValid = useMemo(() => {
     if (title.trim().length < 3) return false;
     if (!ALLOWED_DURATIONS.includes(durationMin)) return false;
@@ -95,9 +176,16 @@ export default function StepSessionDetails({
     )
       return false;
     if (price_cents !== null && price_cents < 0) return false;
+    if (locMax && typeof capacity === "number" && capacity > locMax)
+      return false;
     return true;
-  }, [title, durationMin, capacity, price_cents]);
+  }, [title, durationMin, capacity, price_cents, locMax]);
 
+  useEffect(() => {
+    onValidChange?.(isValid);
+  }, [isValid, onValidChange]);
+
+  // ---------- Upstream sync ----------
   useEffect(() => {
     onChange({
       title: title.trim(),
@@ -107,7 +195,7 @@ export default function StepSessionDetails({
       tags,
       price_cents,
       image_url: imageUrl?.trim() ? imageUrl.trim() : null,
-      recommended_level: fitnessLevel ? fitnessLevel : null, // ✅ neu
+      recommended_level: fitnessLevel ? fitnessLevel : null,
     });
   }, [
     title,
@@ -121,10 +209,7 @@ export default function StepSessionDetails({
     onChange,
   ]);
 
-  useEffect(() => {
-    onValidChange?.(isValid);
-  }, [isValid, onValidChange]);
-
+  // ---------- Helpers ----------
   function togglePresetTag(t: string) {
     setTags((prev) =>
       prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]
@@ -145,44 +230,105 @@ export default function StepSessionDetails({
     setTags((prev) => prev.filter((x) => x !== t));
   }
 
+  // Upload
+  const dropRef = useRef<HTMLLabelElement>(null);
   async function handleFile(file: File) {
     if (!file) return;
+    setUploadError(null);
+    setUploading(true);
+    try {
+      if (!file.type.startsWith("image/"))
+        throw new Error("Nur Bilddateien erlaubt.");
+      if (file.size > 8 * 1024 * 1024) throw new Error("Max. 8 MB.");
 
-    const supa = supabaseBrowser();
+      const supa = supabaseBrowser();
+      const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+      const path = `sessions/${crypto.randomUUID()}.${ext}`;
 
-    // Pfad bauen (ohne userId geht's auch; schöner wäre: userId/folder/...)
-    const ext = file.name.split(".").pop() || "jpg";
-    const path = `sessions/${crypto.randomUUID()}.${ext}`;
+      const { error: upErr } = await supa.storage
+        .from("session-images")
+        .upload(path, file, {
+          cacheControl: "3600",
+          upsert: false,
+          contentType: file.type,
+        });
 
-    // 1) Upload
-    const { error: upErr } = await supa.storage
-      .from("session-images") // <- DEIN Bucketname (public)
-      .upload(path, file, {
-        cacheControl: "3600",
-        upsert: false,
-        contentType: file.type,
-      });
+      if (upErr) throw upErr;
 
-    if (upErr) {
-      console.error(upErr);
-      // Fallback: nur lokale Vorschau zeigen, aber NICHT speichern!
+      const { data: pub } = supa.storage
+        .from("session-images")
+        .getPublicUrl(path);
+      setUploadPreview(pub.publicUrl);
+      setImageUrl(pub.publicUrl);
+    } catch (e: unknown) {
+      console.error(e);
+      const msg =
+        e instanceof Error && e.message
+          ? e.message
+          : typeof e === "string"
+          ? e
+          : "Upload fehlgeschlagen.";
+      setUploadError(msg);
+      // lokale Vorschau als Fallback
       const preview = URL.createObjectURL(file);
       setUploadPreview(preview);
-      return;
+    } finally {
+      setUploading(false);
     }
-
-    // 2) Public-URL erzeugen (keine Netzwerkanfrage, nur Stringbau)
-    const { data: pub } = supa.storage
-      .from("session-images")
-      .getPublicUrl(path);
-
-    // 3) In State übernehmen (das ist dann die URL, die du später im Payload speicherst)
-    setUploadPreview(pub.publicUrl);
-    setImageUrl(pub.publicUrl);
   }
 
+  // ---------- Break-even ----------
+  const effectiveCapacity =
+    capacity === ""
+      ? typeof locMax === "number"
+        ? locMax
+        : null
+      : Number(capacity);
+
+  const breakEven = useMemo(() => {
+    if (!locPriceCents || !price_cents || price_cents <= 0) return null;
+    const needed = Math.ceil(locPriceCents / price_cents);
+    const feasible =
+      typeof effectiveCapacity === "number"
+        ? needed <= effectiveCapacity
+        : true;
+    const fullRevenue =
+      typeof effectiveCapacity === "number"
+        ? effectiveCapacity * price_cents
+        : null;
+    const profitAtFull =
+      fullRevenue !== null ? fullRevenue - locPriceCents : null;
+    const suggestedPricePerHead =
+      typeof effectiveCapacity === "number" && effectiveCapacity > 0
+        ? Math.ceil((locPriceCents / effectiveCapacity) * 1.2) // +20% Puffer
+        : null;
+    return { needed, feasible, profitAtFull, suggestedPricePerHead };
+  }, [locPriceCents, price_cents, effectiveCapacity]);
+
+  const fmtEUR = (cents: number) =>
+    new Intl.NumberFormat("de-DE", {
+      style: "currency",
+      currency: "EUR",
+    }).format(cents / 100);
+
+  // ---------- Capacity UI handlers ----------
+  function incCapacity() {
+    const current = capacity === "" ? locMax ?? 0 : Number(capacity);
+    const next = current + 1;
+    setCapacity(locMax ? Math.min(next, locMax) : next);
+  }
+  function decCapacity() {
+    const current = capacity === "" ? locMax ?? 1 : Number(capacity);
+    const next = Math.max(current - 1, 1);
+    setCapacity(next);
+  }
+
+  const capNum = capacity === "" ? null : Number(capacity);
+  const capDisplay = capNum ?? locMax ?? "—";
+  const hasLimit = typeof locMax === "number";
+
   return (
-    <section className="space-y-5">
+    <section className="space-y-6">
       <h3 className="text-sm font-semibold text-slate-700">
         4) Session-Details
       </h3>
@@ -216,20 +362,21 @@ export default function StepSessionDetails({
       </div>
 
       {/* Dauer + Kapazität */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {/* Dauer */}
         <div className="space-y-2">
           <label className="text-sm font-medium">Dauer *</label>
-          <div className="flex gap-2">
+          <div className="inline-flex rounded-lg ring-1 ring-slate-200 overflow-hidden">
             {ALLOWED_DURATIONS.map((d) => (
               <button
                 key={d}
                 type="button"
                 onClick={() => setDurationMin(d)}
                 className={clsx(
-                  "rounded-md px-3 py-2 text-sm ring-1 ring-inset",
+                  "px-3 py-2 text-sm",
                   durationMin === d
-                    ? "bg-black text-white ring-black"
-                    : "bg-white text-slate-800 ring-slate-200 hover:bg-slate-50"
+                    ? "bg-black text-white"
+                    : "bg-white hover:bg-slate-50"
                 )}
                 aria-pressed={durationMin === d}
               >
@@ -239,31 +386,142 @@ export default function StepSessionDetails({
           </div>
         </div>
 
+        {/* Kapazität mit Limit-Info */}
         <div className="space-y-1">
-          <label className="text-sm font-medium">Kapazität</label>
-          <input
-            type="number"
-            min={1}
-            value={capacity}
-            onChange={(e) =>
-              setCapacity(e.target.value === "" ? "" : Number(e.target.value))
-            }
-            className="w-full rounded-md border px-3 py-2"
-            placeholder="leer lassen = von Location übernehmen"
-          />
+          <label className="text-sm font-medium flex items-center justify-between">
+            <span>Kapazität</span>
+            {hasLimit && (
+              <span className="text-xs text-slate-500">
+                Max. laut Location: <strong>{locMax}</strong>
+              </span>
+            )}
+          </label>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={decCapacity}
+              className="rounded-md border px-3 py-2 text-sm hover:bg-slate-50"
+              aria-label="Kapazität verringern"
+            >
+              –
+            </button>
+
+            <input
+              type="number"
+              min={1}
+              {...(hasLimit ? { max: locMax! } : {})}
+              value={capacity}
+              onChange={(e) => {
+                const raw = e.target.value;
+                if (raw === "") return setCapacity("");
+                const val = Number(raw);
+                if (!Number.isFinite(val) || val < 1) return;
+                setCapacity(hasLimit ? Math.min(val, locMax!) : val);
+              }}
+              className={clsx(
+                "w-24 rounded-md border px-3 py-2 text-center",
+                hasLimit &&
+                  typeof capNum === "number" &&
+                  capNum > (locMax ?? Infinity) &&
+                  "border-rose-400"
+              )}
+              placeholder="leer = Location"
+            />
+
+            <button
+              type="button"
+              onClick={incCapacity}
+              className="rounded-md border px-3 py-2 text-sm hover:bg-slate-50"
+              aria-label="Kapazität erhöhen"
+            >
+              +
+            </button>
+
+            <div className="ml-2 rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700">
+              {typeof capDisplay === "number" && hasLimit
+                ? `${capDisplay} von max ${locMax}`
+                : typeof capDisplay === "number"
+                ? `${capDisplay} Personen`
+                : "von Location übernehmen"}
+            </div>
+          </div>
+
+          {hasLimit && typeof capNum === "number" && capNum >= locMax! && (
+            <p className="text-xs text-amber-600 mt-1">
+              Du hast die maximale Kapazität der Location erreicht.
+            </p>
+          )}
         </div>
       </div>
 
-      {/* Preis */}
+      {/* Preis pro Teilnehmer */}
       <div className="space-y-1">
-        <label className="text-sm font-medium">Preis (EUR)</label>
+        <label className="text-sm font-medium flex items-center justify-between">
+          <span>Preis (EUR pro Teilnehmer)</span>
+          {locPriceCents !== null && (
+            <span className="text-xs text-slate-500">
+              Studio-Preis pro Slot: <strong>{fmtEUR(locPriceCents)}</strong>
+            </span>
+          )}
+        </label>
+
         <input
           inputMode="decimal"
           value={priceEuro}
           onChange={(e) => setPriceEuro(e.target.value)}
           className="w-full rounded-md border px-3 py-2"
-          placeholder="leer lassen = von Location übernehmen"
+          placeholder="z. B. 15,00"
         />
+
+        {/* Break-even Hinweis */}
+        <div className="mt-1 text-xs">
+          {!locPriceCents ? (
+            <span className="text-slate-500">
+              Kein Studio-Preis hinterlegt — füge in der Location{" "}
+              <b>Preis pro Slot</b> hinzu.
+            </span>
+          ) : price_cents === null || price_cents <= 0 ? (
+            <span className="text-slate-500">
+              Gib einen Sessionpreis ein, um die Rentabilität zu sehen.
+            </span>
+          ) : (
+            breakEven && (
+              <span
+                className={clsx(
+                  "inline-block rounded-md px-2 py-1",
+                  breakEven.feasible
+                    ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
+                    : "bg-amber-50 text-amber-700 ring-1 ring-amber-200"
+                )}
+              >
+                Break-even bei <b>{breakEven.needed}</b> Teilnehmer
+                {breakEven.needed === 1 ? "" : "n"}
+                {typeof effectiveCapacity === "number" &&
+                breakEven.needed > effectiveCapacity
+                  ? " (über deiner Kapazität)"
+                  : ""}
+                .
+                {typeof effectiveCapacity === "number" &&
+                  breakEven.profitAtFull !== null && (
+                    <>
+                      {" "}
+                      Gewinn bei voller Auslastung ({effectiveCapacity}):{" "}
+                      <b>{fmtEUR(breakEven.profitAtFull!)}</b>
+                    </>
+                  )}
+                {breakEven.suggestedPricePerHead && (
+                  <>
+                    {" "}
+                    · Vorschlag:{" "}
+                    <b>{fmtEUR(breakEven.suggestedPricePerHead)}</b> pro TN
+                    (inkl. ~20% Puffer)
+                  </>
+                )}
+              </span>
+            )
+          )}
+        </div>
       </div>
 
       {/* Fitness Level */}
@@ -281,10 +539,38 @@ export default function StepSessionDetails({
         </select>
       </div>
 
-      {/* Bild */}
+      {/* Bild-Upload (Dropzone) */}
       <div className="space-y-2">
         <label className="text-sm font-medium">Bild</label>
-        <div className="flex items-center gap-3">
+
+        <label
+          ref={dropRef}
+          onDragOver={(e) => {
+            e.preventDefault();
+            dropRef.current?.classList.add("ring-2", "ring-black");
+          }}
+          onDragLeave={() =>
+            dropRef.current?.classList.remove("ring-2", "ring-black")
+          }
+          onDrop={(e) => {
+            e.preventDefault();
+            dropRef.current?.classList.remove("ring-2", "ring-black");
+            const f = e.dataTransfer.files?.[0];
+            if (f) handleFile(f);
+          }}
+          className={clsx(
+            "flex cursor-pointer items-center justify-center rounded-md border border-dashed px-4 py-10 text-center",
+            "bg-slate-50 hover:bg-slate-100"
+          )}
+        >
+          <div>
+            <div className="text-sm font-medium">
+              Datei hierher ziehen oder klicken
+            </div>
+            <div className="text-xs text-slate-500 mt-1">
+              JPG/PNG, max. 8 MB
+            </div>
+          </div>
           <input
             type="file"
             accept="image/*"
@@ -292,20 +578,36 @@ export default function StepSessionDetails({
               const f = e.target.files?.[0];
               if (f) handleFile(f);
             }}
-            className="text-sm"
+            className="hidden"
           />
-          <span className="text-xs text-slate-500">
-            (Jetzt nur Vorschau – später Upload zu Supabase Storage)
-          </span>
-        </div>
+        </label>
+
         {(uploadPreview || imageUrl) && (
-          <div className="mt-2">
+          <div className="mt-2 flex items-center gap-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={uploadPreview || imageUrl || ""}
               alt="Preview"
-              className="h-40 w-full max-w-sm rounded-md object-cover ring-1 ring-black/5"
+              className="h-40 w-64 rounded-md object-cover ring-1 ring-black/5"
             />
+            <div className="flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setUploadPreview(null);
+                  setImageUrl("");
+                }}
+                className="rounded-md border px-3 py-2 text-sm hover:bg-slate-50"
+              >
+                Entfernen
+              </button>
+              {uploading && (
+                <span className="text-xs text-slate-500">Lade hoch…</span>
+              )}
+              {uploadError && (
+                <span className="text-xs text-rose-600">{uploadError}</span>
+              )}
+            </div>
           </div>
         )}
       </div>
@@ -385,8 +687,7 @@ export default function StepSessionDetails({
 
       {!isValid && (
         <div className="rounded-md border border-rose-300 bg-rose-50 px-3 py-2 text-sm text-rose-700">
-          Bitte Titel (≥3) und gültige Werte prüfen. Dauer ist nur 30 oder 60
-          Min.
+          Bitte Titel (≥3), Dauer (30/60), Kapazität & Preis prüfen.
         </div>
       )}
     </section>

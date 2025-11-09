@@ -19,6 +19,13 @@ export async function toggleDraft(formData: FormData): Promise<void> {
   if (error) throw new Error(error.message);
   revalidatePath("/dashboard/studiohost/locations");
 }
+// 🆕 Helper: optionaler EUR-Wert ("" oder null -> undefined)
+const optionalMoneyEUR = z
+  .preprocess(
+    (val) => (val === "" || val == null ? undefined : val),
+    z.coerce.number().min(0).max(100000)
+  )
+  .optional();
 
 const jsonArray = z.string().transform((s) => {
   try {
@@ -42,13 +49,15 @@ const updateSchema = z.object({
   area_sqm: z.coerce.number().int().min(1).max(100000).optional().nullable(),
   max_participants: z.coerce.number().int().min(1).max(5000),
 
+  // 🆕 EUR-Feld aus dem Form (z. B. "25.00")
+  price_per_slot_eur: optionalMoneyEUR,
+
   amenities_json: jsonArray,
   allowed_tags_json: jsonArray,
   image_urls_json: jsonArray,
 
   house_rules: z.string().max(4000).optional().default(""),
 });
-
 export async function updateLocation(formData: FormData): Promise<void> {
   const parsed = updateSchema.safeParse({
     id: formData.get("id"),
@@ -62,6 +71,9 @@ export async function updateLocation(formData: FormData): Promise<void> {
 
     area_sqm: formData.get("area_sqm"),
     max_participants: formData.get("max_participants"),
+
+    // 🆕 vom Form übernehmen
+    price_per_slot_eur: formData.get("price_per_slot_eur"),
 
     amenities_json: formData.get("amenities_json") ?? "[]",
     allowed_tags_json: formData.get("allowed_tags_json") ?? "[]",
@@ -81,6 +93,12 @@ export async function updateLocation(formData: FormData): Promise<void> {
     country: v.country,
   };
 
+  // 🆕 EUR -> Cent (oder null)
+  const pricePerSlotCents =
+    typeof v.price_per_slot_eur === "number"
+      ? Math.round(v.price_per_slot_eur * 100)
+      : null;
+
   const supa = await supabaseServerAction();
   const { error } = await supa
     .from("studio_locations")
@@ -94,13 +112,15 @@ export async function updateLocation(formData: FormData): Promise<void> {
       allowed_tags: v.allowed_tags_json.length ? v.allowed_tags_json : null,
       image_urls: v.image_urls_json.length ? v.image_urls_json : null,
       house_rules: v.house_rules || null,
+
+      // 🆕 in DB speichern (number | null)
+      price_per_slot: pricePerSlotCents,
     })
     .eq("id", v.id);
 
   if (error) throw new Error(error.message);
 
   revalidatePath("/dashboard/studiohost/locations");
-  // kein Return – Server Actions in <form action={...}> müssen void liefern
 }
 
 export async function deleteLocation(formData: FormData): Promise<void> {
