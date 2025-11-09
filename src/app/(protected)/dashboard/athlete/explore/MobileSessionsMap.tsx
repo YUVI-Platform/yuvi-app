@@ -1,8 +1,7 @@
 "use client";
 
 // ✅ Modernized for react-map-gl v8 + mapbox-gl v3
-// Install (falls noch nicht):
-//   npm i react-map-gl mapbox-gl
+import type { Database } from "@/types/supabase";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Map, {
@@ -38,20 +37,38 @@ function debounce<T extends (...args: any[]) => void>(fn: T, ms = 300) {
   };
 }
 
-// --- Filters ---
 const SESSION_TYPES = [
   { key: "group", label: "Group" },
   { key: "private", label: "Private" },
   { key: "trainWithMe", label: "Train with me" },
 ] as const;
 
+// ---- Typing ----
+// Falls deine Supabase-Typen die Funktion noch nicht kennen, nutze manuell:
+type BboxArgs = {
+  p_min_lat: number;
+  p_min_lng: number;
+  p_max_lat: number;
+  p_max_lng: number;
+};
+// Optionale Filter-Args (müssen mit deiner SQL-Funktion korrespondieren)
+type ExtraArgs = Partial<{
+  p_q: string;
+  p_types: Database["public"]["Enums"]["session_type"][];
+  p_free_only: boolean;
+  p_max_price_cents: number;
+  p_from: string;
+  p_to: string;
+  p_tags: string[];
+}>;
+
 type Filters = {
   q: string;
   onlyFreeSeats: boolean;
-  types: string[]; // public.session_type[]
-  priceMaxEUR: number | null; // max price in EUR
-  fromISO: string | null; // starts_at >= from
-  toISO: string | null; // ends_at <= to
+  types: Database["public"]["Enums"]["session_type"][]; // streng typisiert
+  priceMaxEUR: number | null;
+  fromISO: string | null;
+  toISO: string | null;
   tags: string[];
 };
 
@@ -66,6 +83,9 @@ export default function MobileSessionsMap() {
     longitude: 11.5761,
     latitude: 48.1374,
     zoom: 11,
+    bearing: 0,
+    pitch: 0,
+    padding: { top: 0, left: 0, right: 0, bottom: 0 },
   });
 
   const [filters, setFilters] = useState<Filters>({
@@ -79,32 +99,40 @@ export default function MobileSessionsMap() {
   });
 
   const fetchPinsByBounds = useCallback(async () => {
-    const m = mapRef.current?.getMap();
-    if (!m) return;
-    const b = m.getBounds();
+    const map = mapRef.current?.getMap();
+    if (!map) return;
+
+    const bounds = map.getBounds();
+    if (!bounds) return;
 
     setLoading(true);
     setError(null);
 
-    // RPC-Argumente dynamisch aufbauen (passen zu der erweiterten SQL-Funktion)
-    const args: Record<string, any> = {
-      p_min_lng: b.getWest(),
-      p_min_lat: b.getSouth(),
-      p_max_lng: b.getEast(),
-      p_max_lat: b.getNorth(),
+    // Basis-BBOX-Args
+    const base: BboxArgs = {
+      p_min_lat: bounds.getSouth(),
+      p_min_lng: bounds.getWest(),
+      p_max_lat: bounds.getNorth(),
+      p_max_lng: bounds.getEast(),
     };
-    if (filters.q.trim()) args.p_q = filters.q.trim();
-    if (filters.types.length) args.p_types = filters.types;
-    if (filters.onlyFreeSeats) args.p_free_only = true; // default in SQL kann auch true sein
-    if (filters.priceMaxEUR != null)
-      args.p_max_price_cents = Math.round(filters.priceMaxEUR * 100);
-    if (filters.fromISO) args.p_from = filters.fromISO;
-    if (filters.toISO) args.p_to = filters.toISO;
-    if (filters.tags.length) args.p_tags = filters.tags;
 
+    // optionale Filter-Args zusammenbauen
+    const extra: ExtraArgs = {
+      ...(filters.q.trim() ? { p_q: filters.q.trim() } : {}),
+      ...(filters.types.length ? { p_types: filters.types } : {}),
+      ...(filters.onlyFreeSeats ? { p_free_only: true } : {}),
+      ...(filters.priceMaxEUR != null
+        ? { p_max_price_cents: Math.round(filters.priceMaxEUR * 100) }
+        : {}),
+      ...(filters.fromISO ? { p_from: filters.fromISO } : {}),
+      ...(filters.toISO ? { p_to: filters.toISO } : {}),
+      ...(filters.tags.length ? { p_tags: filters.tags } : {}),
+    };
+
+    // ein einziger RPC-Call
     const { data, error } = await supabase.rpc(
       "find_occurrences_in_bbox",
-      args
+      { ...base, ...extra } as any // falls TS wegen fehlender Gen-Typen meckert
     );
 
     if (error) {
@@ -152,8 +180,13 @@ export default function MobileSessionsMap() {
     );
   }, []);
 
+  // Bei Filteränderungen (debounced) neu laden
+  useEffect(() => {
+    debouncedFetch();
+  }, [filters, debouncedFetch]);
+
   // UI-Handler
-  const toggleType = (t: string) =>
+  const toggleType = (t: Database["public"]["Enums"]["session_type"]) =>
     setFilters((f) => ({
       ...f,
       types: f.types.includes(t)
@@ -225,9 +258,15 @@ export default function MobileSessionsMap() {
             {SESSION_TYPES.map((t) => (
               <button
                 key={t.key}
-                onClick={() => toggleType(t.key)}
+                onClick={() =>
+                  toggleType(
+                    t.key as Database["public"]["Enums"]["session_type"]
+                  )
+                }
                 className={`rounded-lg px-2 py-1 ${
-                  filters.types.includes(t.key)
+                  filters.types.includes(
+                    t.key as Database["public"]["Enums"]["session_type"]
+                  )
                     ? "bg-black text-white"
                     : "bg-white text-black border border-slate-300"
                 }`}
