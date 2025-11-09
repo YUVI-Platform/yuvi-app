@@ -56,7 +56,7 @@ export default async function StudioHostLocationsPage() {
           </p>
         </div>
         <Link
-          href="/dashboard/studioHost/locations/new"
+          href="/dashboard/studiohost/locations/new"
           className="rounded-md bg-black px-4 py-2 text-white hover:bg-black/90"
         >
           + Neue Location

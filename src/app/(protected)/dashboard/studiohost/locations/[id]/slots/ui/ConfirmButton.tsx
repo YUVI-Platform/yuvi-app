@@ -1,4 +1,4 @@
-// src/app/(protected)/dashboard/studioHost/locations/[id]/slots/ui/ConfirmButton.tsx
+// src/app/(protected)/dashboard/studiohost/locations/[id]/slots/ui/ConfirmButton.tsx
 "use client";
 import { useState } from "react";
 

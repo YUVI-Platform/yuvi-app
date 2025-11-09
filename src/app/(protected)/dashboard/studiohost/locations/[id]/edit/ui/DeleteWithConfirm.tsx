@@ -1,4 +1,4 @@
-// src/app/(protected)/dashboard/studioHost/locations/[id]/edit/ui/DeleteWithConfirm.tsx
+// src/app/(protected)/dashboard/studiohost/locations/[id]/edit/ui/DeleteWithConfirm.tsx
 "use client";
 
 import { useTransition } from "react";

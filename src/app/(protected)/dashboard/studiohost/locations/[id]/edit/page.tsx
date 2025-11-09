@@ -1,4 +1,4 @@
-// src/app/(protected)/dashboard/studioHost/locations/[id]/edit/page.tsx
+// src/app/(protected)/dashboard/studiohost/locations/[id]/edit/page.tsx
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { supabaseServerRead } from "@/lib/supabaseServer";

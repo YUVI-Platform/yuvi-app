@@ -1,4 +1,4 @@
-// src/app/(protected)/dashboard/studioHost/locations/new/page.tsx
+// src/app/(protected)/dashboard/studiohost/locations/new/page.tsx
 import "server-only";
 import Link from "next/link";
 import { redirect } from "next/navigation";
