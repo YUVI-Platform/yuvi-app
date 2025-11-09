@@ -1,13 +1,14 @@
 // src/app/(protected)/dashboard/motionexpert/sessions/new/ui/StepPreview.tsx
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { publishSessions } from "../actions";
 import type { SessionType } from "./StepSessionType";
 import type { LocationType } from "./StepLocationType";
 import type { StudioSlot } from "./StepSlotPicker";
 import type { SessionDetails } from "./StepSessionDetails";
 import { useRouter } from "next/navigation";
+import { AnimatePresence, motion } from "framer-motion";
 
 type MinimalStudio = {
   id: string;
@@ -160,7 +161,7 @@ export default function StepPreview({
 
   function handleCloseSuccess() {
     setSuccess(null);
-    router.push("/motionexperts/sessions"); // ggf. an deine Route anpassen
+    router.push("/dashboard/motionexpert/sessions"); // ggf. anpassen
   }
 
   return (
@@ -181,31 +182,7 @@ export default function StepPreview({
           </span>
         ))}
       </div>
-      {success && (
-        <div
-          role="alert"
-          aria-live="polite"
-          className="flex items-start justify-between gap-3 rounded-md border border-emerald-300 bg-emerald-50 p-3 text-sm text-emerald-900"
-        >
-          <div>
-            🎉 <b>Session veröffentlicht.</b>
-            <span className="ml-2 opacity-80">
-              ID:{" "}
-              <code className="rounded bg-white/70 px-1">
-                {success.sessionId}
-              </code>
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={handleCloseSuccess}
-            className="rounded border border-emerald-300 bg-white/60 px-2 py-1 text-emerald-900 hover:bg-emerald-100"
-            title="Schließen und zur Übersicht"
-          >
-            Schließen
-          </button>
-        </div>
-      )}
+
       {serverError && (
         <div
           role="alert"
@@ -214,6 +191,7 @@ export default function StepPreview({
           {serverError}
         </div>
       )}
+
       {/* Preview Card */}
       <div className="overflow-hidden rounded-2xl border">
         <div className="aspect-[16/6] w-full bg-slate-100">
@@ -269,8 +247,7 @@ export default function StepPreview({
             <InfoTile
               label="Level"
               value={levelLabel(details.recommended_level)}
-            />{" "}
-            {/* ✅ neu */}
+            />
           </div>
 
           {!!details.tags?.length && (
@@ -355,7 +332,7 @@ export default function StepPreview({
             <div className="mt-2 flex items-center gap-3">
               <button
                 type="submit"
-                disabled={isPending /* || !exactlyOneLocationOK  */}
+                disabled={isPending /* || !exactlyOneLocationOK */}
                 className="rounded-md bg-black px-4 py-2 text-white disabled:opacity-50"
               >
                 {isPending ? "Veröffentliche…" : "Veröffentlichen"}
@@ -378,6 +355,16 @@ export default function StepPreview({
           )}
         </div>
       </div>
+
+      {/* ✅ Animated Success Overlay */}
+      <AnimatePresence>
+        {success && (
+          <SuccessOverlay
+            sessionId={success.sessionId}
+            onClose={handleCloseSuccess}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -388,5 +375,95 @@ function InfoTile({ label, value }: { label: string; value: string }) {
       <div className="text-xs text-slate-500">{label}</div>
       <div className="text-sm font-medium text-slate-800">{value}</div>
     </div>
+  );
+}
+
+/** ---------- Overlay Component ---------- */
+function SuccessOverlay({
+  sessionId,
+  onClose,
+}: {
+  sessionId: string;
+  onClose: () => void;
+}) {
+  // Body scroll lock + ESC
+  useEffect(() => {
+    const root = document.documentElement;
+    const prev = root.style.overflow;
+    root.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => {
+      root.style.overflow = prev;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [onClose]);
+
+  return (
+    <>
+      {/* Backdrop */}
+      <motion.div
+        className="fixed inset-0 z-50 bg-black/50"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+      />
+      {/* Dialog */}
+      <motion.div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="success-title"
+        className="fixed inset-0 z-50 grid place-items-center p-4"
+        initial={{ scale: 0.9, opacity: 0, y: 20 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.95, opacity: 0, y: 10 }}
+        transition={{ type: "spring", stiffness: 380, damping: 30 }}
+      >
+        <div className="w-[min(520px,100%)] rounded-2xl border bg-white p-6 shadow-2xl">
+          {/* Icon + headline */}
+          <div className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-full bg-emerald-100 ring-1 ring-emerald-200">
+            <motion.svg
+              viewBox="0 0 24 24"
+              className="h-8 w-8 text-emerald-600"
+              initial={{ pathLength: 0 }}
+              animate={{ pathLength: 1 }}
+              transition={{ duration: 0.6, ease: "easeInOut", delay: 0.15 }}
+            >
+              <motion.path
+                stroke="currentColor"
+                strokeWidth="2.5"
+                fill="none"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M20 6L9 17l-5-5"
+              />
+            </motion.svg>
+          </div>
+
+          <h2
+            id="success-title"
+            className="text-center text-lg font-semibold text-emerald-900"
+          >
+            Session veröffentlicht 🎉
+          </h2>
+          <p className="mt-1 text-center text-sm text-slate-600">
+            Deine Session ist live. ID:&nbsp;
+            <code className="rounded bg-slate-100 px-1 py-0.5 text-xs">
+              {sessionId}
+            </code>
+          </p>
+
+          <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
+            <button
+              onClick={onClose}
+              className="inline-flex items-center justify-center rounded-md bg-black px-4 py-2 text-sm font-medium text-white"
+            >
+              Zu meinen Sessions
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    </>
   );
 }
