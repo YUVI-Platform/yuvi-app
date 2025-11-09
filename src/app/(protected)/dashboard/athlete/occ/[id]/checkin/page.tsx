@@ -1,5 +1,4 @@
 import AthleteCheckinClient from "./AthleteCheckinClient";
-import CheckinClient from "./CheckinClient";
 
 export default async function Page({
   params,
