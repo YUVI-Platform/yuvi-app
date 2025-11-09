@@ -26,26 +26,26 @@ export default async function OccDetailPage({
   const { data: me } = await supa.auth.getUser();
   if (!me?.user) redirect(`/login?redirectTo=/dashboard/athlete/occ/${occId}`);
 
-  // 🔎 Occurrence + Session + Location
+  // 1) Occurrence + Session + Slots + (Location mit location_id) laden
   const { data: occ, error: occErr } = await supa
     .from("session_occurrences")
     .select(
       `
-      id, starts_at, ends_at, capacity,
+      id, starts_at, ends_at, capacity, studio_slot_id, self_hosted_slot_id,
       sessions:session_id(
         id, title, description, duration_minutes, equipment, session_type,
         tags, image_urls, price_cents, recommended_level, max_participants,
         location_type, expert_user_id
       ),
       studio_slots:studio_slot_id(
-        id, starts_at, ends_at, capacity, status, allowed_tags,
+        id, starts_at, ends_at, capacity, status, allowed_tags, location_id,
         studio_locations:location_id(
           id, title, description, address, image_urls, amenities,
           area_sqm, max_participants, house_rules, price_per_slot
         )
       ),
       self_hosted_slots:self_hosted_slot_id(
-        id, starts_at, ends_at, capacity,
+        id, starts_at, ends_at, capacity, self_location_id,
         self_hosted_locations:self_location_id(
           id, title, address, image_urls
         )
@@ -70,7 +70,7 @@ export default async function OccDetailPage({
     );
   }
 
-  // 👤 Eigene (aktive) Buchung inkl. Payment + Check-in mitladen
+  // 2) Eigene Buchung (aktiv)
   const { data: rawBooking } = await supa
     .from("bookings")
     .select("id, status, payment, checked_in_at")
@@ -90,14 +90,67 @@ export default async function OccDetailPage({
       : null;
 
   const s = occ.sessions;
-  const isStudio = s?.location_type === "studio_location";
-  const studioLoc = occ.studio_slots?.studio_locations ?? null;
-  const selfLoc = occ.self_hosted_slots?.self_hosted_locations ?? null;
 
+  // 3) Harte Entscheidung nach Slot-IDs (höchste Priorität), danach Session.location_type
+  type Kind = "studio" | "self" | null;
+  let kind: Kind = null;
+
+  if (occ.studio_slot_id) {
+    kind = "studio";
+  } else if (occ.self_hosted_slot_id) {
+    kind = "self";
+  } else if (s?.location_type === "studio_location") {
+    kind = "studio";
+  } else if (s?.location_type === "self_hosted") {
+    kind = "self";
+  }
+
+  // 4) Location-Objekt robust auflösen, ggf. Nachladen falls Nested null (RLS/Join)
+  let studioLoc = occ.studio_slots?.studio_locations ?? null; // evtl. null wegen RLS/Join
+  let selfLoc = occ.self_hosted_slots?.self_hosted_locations ?? null; // evtl. null wegen RLS/Join
+
+  if (kind === "studio" && !studioLoc) {
+    const studioLocationId = occ.studio_slots?.location_id;
+    if (studioLocationId) {
+      const { data: loc } = await supa
+        .from("studio_locations")
+        .select(
+          "id, title, description, address, image_urls, amenities, area_sqm, max_participants, house_rules, price_per_slot"
+        )
+        .eq("id", studioLocationId)
+        .maybeSingle();
+      studioLoc = loc ?? null;
+    }
+  }
+
+  if (kind === "self" && !selfLoc) {
+    const selfLocationId = occ.self_hosted_slots?.self_location_id;
+    if (selfLocationId) {
+      const { data: loc } = await supa
+        .from("self_hosted_locations")
+        .select("id, title, address, image_urls")
+        .eq("id", selfLocationId)
+        .maybeSingle();
+      selfLoc = loc ?? null;
+    }
+  }
+
+  // 5) Finale "resolvedLocation"
+  type Resolved =
+    | { kind: "studio"; data: NonNullable<typeof studioLoc> }
+    | { kind: "self"; data: NonNullable<typeof selfLoc> }
+    | null;
+
+  let resolvedLocation: Resolved = null;
+  if (kind === "studio" && studioLoc)
+    resolvedLocation = { kind: "studio", data: studioLoc };
+  if (kind === "self" && selfLoc)
+    resolvedLocation = { kind: "self", data: selfLoc };
+
+  // 6) Galerie: Session-Bilder + Bilder der gewählten Location
   const gallery = [
     ...(Array.isArray(s?.image_urls) ? s!.image_urls! : []),
-    ...(Array.isArray(studioLoc?.image_urls) ? studioLoc!.image_urls! : []),
-    ...(Array.isArray(selfLoc?.image_urls) ? selfLoc!.image_urls! : []),
+    ...(resolvedLocation?.data?.image_urls ?? []),
   ].filter(Boolean);
 
   const pagePath = `/dashboard/athlete/occ/${occId}`;
@@ -162,78 +215,57 @@ export default async function OccDetailPage({
         )}
       </div>
 
-      {/* Beschreibung & Equipment */}
-      {(s?.description ||
-        (Array.isArray(s?.equipment) && s!.equipment!.length)) && (
-        <div className="grid gap-4 md:grid-cols-3">
-          {s?.description && (
-            <div className="md:col-span-2">
-              <h2 className="mb-1 text-base font-semibold">Beschreibung</h2>
-              <p className="text-sm text-slate-700 whitespace-pre-line">
-                {s.description}
-              </p>
-            </div>
-          )}
-          {Array.isArray(s?.equipment) && s!.equipment!.length > 0 && (
-            <div className="md:col-span-1">
-              <h3 className="mb-1 text-sm font-semibold">
-                Benötigte Ausrüstung
-              </h3>
-              <ul className="list-inside list-disc text-sm text-slate-700">
-                {s!.equipment!.map((e, i) => (
-                  <li key={i}>{e}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Location-Infos */}
       <div className="space-y-2">
         <h2 className="text-base font-semibold">Ort</h2>
 
-        {isStudio && studioLoc ? (
+        {resolvedLocation?.kind === "studio" ? (
           <div className="space-y-1 text-sm text-slate-700">
-            <div className="font-medium">{studioLoc.title ?? "Studio"}</div>
-            {studioLoc.address && (
+            <div className="font-medium">
+              {resolvedLocation.data.title ?? "Studio"}
+            </div>
+            {resolvedLocation.data.address && (
               <pre className="whitespace-pre-wrap rounded-md bg-slate-50 p-2 text-xs text-slate-700 ring-1 ring-slate-200">
-                {JSON.stringify(studioLoc.address, null, 2)}
+                {JSON.stringify(resolvedLocation.data.address, null, 2)}
               </pre>
             )}
-            {studioLoc.amenities?.length ? (
-              <div className="flex flex-wrap gap-2">
-                {studioLoc.amenities.map((a) => (
-                  <span
-                    key={a}
-                    className="rounded bg-slate-100 px-2 py-0.5 text-xs ring-1 ring-slate-200"
-                  >
-                    {a}
-                  </span>
-                ))}
-              </div>
-            ) : null}
-            {studioLoc.house_rules && (
+            {Array.isArray(resolvedLocation.data.amenities) &&
+              resolvedLocation.data.amenities.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {resolvedLocation.data.amenities.map((a: string) => (
+                    <span
+                      key={a}
+                      className="rounded bg-slate-100 px-2 py-0.5 text-xs ring-1 ring-slate-200"
+                    >
+                      {a}
+                    </span>
+                  ))}
+                </div>
+              )}
+            {resolvedLocation.data.house_rules && (
               <div>
                 <div className="mt-2 text-xs font-medium text-slate-600">
                   Hausregeln
                 </div>
-                <p className="text-sm">{studioLoc.house_rules}</p>
+                <p className="text-sm">{resolvedLocation.data.house_rules}</p>
               </div>
             )}
             <div className="text-xs text-slate-500">
-              Fläche: {studioLoc.area_sqm ?? "—"} m² • Slot-Preis (Host):{" "}
-              {studioLoc.price_per_slot ? euro(studioLoc.price_per_slot) : "—"}
+              Fläche: {resolvedLocation.data.area_sqm ?? "—"} m² • Slot-Preis
+              (Host):{" "}
+              {resolvedLocation.data.price_per_slot
+                ? euro(resolvedLocation.data.price_per_slot)
+                : "—"}
             </div>
           </div>
-        ) : selfLoc ? (
+        ) : resolvedLocation?.kind === "self" ? (
           <div className="space-y-1 text-sm text-slate-700">
             <div className="font-medium">
-              {selfLoc.title ?? "Self-Hosted Ort"}
+              {resolvedLocation.data.title ?? "Self-Hosted Ort"}
             </div>
-            {selfLoc.address && (
+            {resolvedLocation.data.address && (
               <pre className="whitespace-pre-wrap rounded-md bg-slate-50 p-2 text-xs text-slate-700 ring-1 ring-slate-200">
-                {JSON.stringify(selfLoc.address, null, 2)}
+                {JSON.stringify(resolvedLocation.data.address, null, 2)}
               </pre>
             )}
           </div>

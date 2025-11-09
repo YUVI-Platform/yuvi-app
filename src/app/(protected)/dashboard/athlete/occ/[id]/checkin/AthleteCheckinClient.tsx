@@ -80,6 +80,15 @@ export default function AthleteCheckinClient({
     }
   }
 
+  React.useEffect(() => {
+    if (ok === true) {
+      const timer = setTimeout(() => {
+        router.back();
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [ok, router]);
+
   // 👉 Wichtig: Kamera im *Click-Handler* starten
   async function openScannerNow() {
     setScanOpen(true);

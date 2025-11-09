@@ -41,75 +41,121 @@ export default function CheckinClient({
   const mm = String(Math.floor(msLeft / 60000)).padStart(2, "0");
   const ss = String(Math.floor((msLeft % 60000) / 1000)).padStart(2, "0");
 
-  // Helper: Buchungen + Profile clientseitig nachladen (RLS muss passen!)
-  async function fetchBookings() {
-    const { data: bookings } = await supabase
-      .from("bookings")
-      .select("id, athlete_user_id, status, payment, checked_in_at")
-      .eq("occurrence_id", occId);
+  // Hilfsfunktionen
+  const upsertWithProfile = React.useCallback(
+    async (b: {
+      id: string;
+      athlete_user_id: string;
+      status: BookingRow["status"];
+      payment: BookingRow["payment"];
+      checked_in_at: string | null;
+    }) => {
+      // Profile aus aktuellem Cache übernehmen oder einmalig nachladen
+      let profile = rows.find(
+        (r) => r.athlete_user_id === b.athlete_user_id
+      )?.profile;
+      if (!profile) {
+        const { data: p } = await supabase
+          .from("profiles")
+          .select("user_id, name, avatar_url")
+          .eq("user_id", b.athlete_user_id)
+          .maybeSingle();
+        profile = p
+          ? { name: p.name, avatar_url: p.avatar_url }
+          : { name: b.athlete_user_id, avatar_url: null };
+      }
+      setRows((prev) => {
+        const idx = prev.findIndex((x) => x.id === b.id);
+        const next = [...prev];
+        const merged: BookingRow = { ...b, profile };
+        if (idx === -1) next.push(merged);
+        else next[idx] = { ...next[idx], ...merged };
+        return next;
+      });
+    },
+    [rows]
+  );
 
-    const ids = Array.from(
-      new Set((bookings ?? []).map((b) => b.athlete_user_id))
-    ).filter(Boolean);
-    const profilesMap: Record<
-      string,
-      { name: string; avatar_url: string | null }
-    > = {};
-    if (ids.length) {
-      const { data: profs } = await supabase
-        .from("profiles")
-        .select("user_id, name, avatar_url")
-        .in("user_id", ids);
-      for (const p of profs ?? [])
-        profilesMap[p.user_id] = { name: p.name, avatar_url: p.avatar_url };
-    }
+  const removeById = (id: string) =>
+    setRows((prev) => prev.filter((r) => r.id !== id));
 
-    setRows(
-      (bookings ?? []).map((b) => ({
-        ...b,
-        profile: profilesMap[b.athlete_user_id] ?? {
-          name: b.athlete_user_id,
-          avatar_url: null,
-        },
-      }))
-    );
-  }
-
-  // Realtime-Updates für Änderungen an bookings der Occurrence
+  // Realtime: gezielt auf INSERT/UPDATE/DELETE reagieren
   React.useEffect(() => {
-    // Initial refresh (falls Seite lange offen)
-    fetchBookings();
-
     const ch = supabase
       .channel(`occ-${occId}-bookings`)
       .on(
         "postgres_changes",
         {
-          event: "*",
+          event: "INSERT",
           schema: "public",
           table: "bookings",
           filter: `occurrence_id=eq.${occId}`,
         },
-        () => fetchBookings()
+        (payload) => {
+          const b = payload.new as any;
+          void upsertWithProfile({
+            id: b.id,
+            athlete_user_id: b.athlete_user_id,
+            status: b.status,
+            payment: b.payment,
+            checked_in_at: b.checked_in_at,
+          });
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "bookings",
+          filter: `occurrence_id=eq.${occId}`,
+        },
+        (payload) => {
+          const b = payload.new as any; // z. B. beim Check-in ändert sich checked_in_at/status
+          void upsertWithProfile({
+            id: b.id,
+            athlete_user_id: b.athlete_user_id,
+            status: b.status,
+            payment: b.payment,
+            checked_in_at: b.checked_in_at,
+          });
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "DELETE",
+          schema: "public",
+          table: "bookings",
+          filter: `occurrence_id=eq.${occId}`,
+        },
+        (payload) => removeById((payload.old as any).id)
       )
       .subscribe();
 
     return () => {
       supabase.removeChannel(ch);
     };
-  }, [occId]);
+  }, [occId, upsertWithProfile]);
 
-  const checkedIn = rows
-    .filter(
-      (r) =>
-        !!r.checked_in_at &&
-        (r.status === "confirmed" || r.status === "completed")
-    )
-    .sort((a, b) =>
-      (a.checked_in_at || "").localeCompare(b.checked_in_at || "")
-    );
-  const expected = rows.filter(
-    (r) => !r.checked_in_at && r.status !== "cancelled"
+  // Abgeleitete Listen
+  const checkedIn = React.useMemo(
+    () =>
+      rows
+        .filter(
+          (r) =>
+            !!r.checked_in_at &&
+            (r.status === "confirmed" || r.status === "completed")
+        )
+        .sort((a, b) =>
+          (a.checked_in_at || "").localeCompare(b.checked_in_at || "")
+        ),
+    [rows]
+  );
+
+  const expected = React.useMemo(
+    () => rows.filter((r) => !r.checked_in_at && r.status !== "cancelled"),
+    [rows]
   );
 
   return (
@@ -128,12 +174,10 @@ export default function CheckinClient({
 
       <div className="flex flex-col items-center gap-4 rounded-xl border bg-white p-6">
         <QR value={qrUrl} size={280} />
-
         <div className="text-center">
           <p className="text-xs text-slate-500">Fallback-Code</p>
           <p className="text-2xl font-mono tracking-widest">{token}</p>
         </div>
-
         <div className="flex flex-wrap gap-2">
           <a
             href={qrUrl}
@@ -156,7 +200,6 @@ export default function CheckinClient({
             Code neu erzeugen
           </a>
         </div>
-
         {expired && (
           <div className="w-full rounded-md bg-yellow-50 border border-yellow-200 p-3 text-sm text-yellow-800">
             Der Code ist abgelaufen.{" "}
@@ -180,7 +223,6 @@ export default function CheckinClient({
                 className="flex items-center justify-between rounded-lg border px-3 py-2"
               >
                 <div className="flex items-center gap-3">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={r.profile?.avatar_url || "/avatar.png"}
                     alt=""
@@ -226,7 +268,6 @@ export default function CheckinClient({
                 className="flex items-center justify-between rounded-lg border px-3 py-2"
               >
                 <div className="flex items-center gap-3">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={r.profile?.avatar_url || "/avatar.png"}
                     alt=""
