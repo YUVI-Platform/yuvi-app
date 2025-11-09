@@ -1,9 +1,10 @@
 import { redirect } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import { supabaseServerRead } from "@/lib/supabaseServer";
 import SeatsLeftBadge from "@/app/(protected)/components/SeatsLeftBadge";
 import BookButton from "@/app/(protected)/components/BookButton";
-import Link from "next/link";
+import type { Enums } from "@/types/supabase";
 
 function euro(cents?: number | null) {
   if (typeof cents !== "number") return "—";
@@ -25,7 +26,7 @@ export default async function OccDetailPage({
   const { data: me } = await supa.auth.getUser();
   if (!me?.user) redirect(`/login?redirectTo=/dashboard/athlete/occ/${occId}`);
 
-  // 🔎 Vollständige Occurrence + Session + Location-Infos laden
+  // 🔎 Occurrence + Session + Location
   const { data: occ, error: occErr } = await supa
     .from("session_occurrences")
     .select(
@@ -69,14 +70,24 @@ export default async function OccDetailPage({
     );
   }
 
-  // 👤 Bestehende Buchung des aktuellen Users?
-  const { data: myBooking } = await supa
+  // 👤 Eigene (aktive) Buchung inkl. Payment + Check-in mitladen
+  const { data: rawBooking } = await supa
     .from("bookings")
-    .select("id, status")
+    .select("id, status, payment, checked_in_at")
     .eq("occurrence_id", occId)
     .eq("athlete_user_id", me.user.id)
-    .in("status", ["pending", "confirmed"])
-    .maybeSingle();
+    .maybeSingle<{
+      id: string;
+      status: Enums<"booking_status">;
+      payment: Enums<"payment_status">;
+      checked_in_at: string | null;
+    }>();
+
+  const myBooking =
+    rawBooking &&
+    !["cancelled", "completed", "no_show"].includes(rawBooking.status)
+      ? rawBooking
+      : null;
 
   const s = occ.sessions;
   const isStudio = s?.location_type === "studio_location";
@@ -116,9 +127,9 @@ export default async function OccDetailPage({
         </div>
       </div>
 
-      {/* Bilder-Galerie (falls vorhanden) */}
+      {/* Bilder */}
       {gallery.length > 0 && (
-        <div className="grid grid-cols-1 gap-3 ">
+        <div className="grid grid-cols-1 gap-3">
           {gallery.slice(0, 6).map((src, i) => (
             <Image
               key={i}
@@ -211,7 +222,7 @@ export default async function OccDetailPage({
               </div>
             )}
             <div className="text-xs text-slate-500">
-              Fläche: {studioLoc.area_sqm ?? "—"} m² •{"  "}Slot-Preis (Host):{" "}
+              Fläche: {studioLoc.area_sqm ?? "—"} m² • Slot-Preis (Host):{" "}
               {studioLoc.price_per_slot ? euro(studioLoc.price_per_slot) : "—"}
             </div>
           </div>
@@ -235,12 +246,7 @@ export default async function OccDetailPage({
 
       {/* CTA */}
       <div className="pt-2 flex gap-4 w-full">
-        <BookButton
-          occurrenceId={occId}
-          bookingId={myBooking?.id ?? null}
-          path={pagePath}
-        />
-
+        <BookButton occurrenceId={occId} booking={myBooking} path={pagePath} />
         {myBooking && (
           <Link
             href={`/dashboard/athlete/occ/${occId}/checkin`}

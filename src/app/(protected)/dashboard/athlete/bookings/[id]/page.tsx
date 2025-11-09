@@ -1,11 +1,17 @@
+// app/(protected)/dashboard/athlete/occ/[id]/page.tsx
 import { redirect } from "next/navigation";
 import { supabaseServerRead } from "@/lib/supabaseServer";
 import SeatsLeftBadge from "@/app/(protected)/components/SeatsLeftBadge";
 import BookButton from "@/app/(protected)/components/BookButton";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import type { Enums, Tables } from "@/types/supabase";
 
 type Params = Promise<{ id: string }>;
+type BookingLite = Pick<
+  Tables<"bookings">,
+  "id" | "status" | "payment" | "checked_in_at"
+>;
 
 export default async function OccDetailPage({ params }: { params: Params }) {
   const { id: occId } = await params;
@@ -36,14 +42,21 @@ export default async function OccDetailPage({ params }: { params: Params }) {
     );
   }
 
-  // 👇 prüfen, ob der aktuelle User diese Occurrence aktiv gebucht hat
-  const { data: myBooking } = await supa
+  // Eigene aktive Buchung inkl. payment + checked_in_at
+  const { data: rawBooking } = await supa
     .from("bookings")
-    .select("id, status")
+    .select("id, status, payment, checked_in_at")
     .eq("occurrence_id", occId)
     .eq("athlete_user_id", me.user.id)
-    .in("status", ["pending", "confirmed"])
-    .maybeSingle();
+    .maybeSingle<BookingLite>();
+
+  const myBooking: BookingLite | null =
+    rawBooking &&
+    !(
+      ["cancelled", "completed", "no_show"] as Enums<"booking_status">[]
+    ).includes(rawBooking.status)
+      ? rawBooking
+      : null;
 
   const starts = new Date(occ.starts_at).toLocaleString();
   const img = occ.sessions?.image_urls?.[0];
@@ -81,11 +94,7 @@ export default async function OccDetailPage({ params }: { params: Params }) {
           )}
 
           <div>
-            <BookButton
-              occurrenceId={occId}
-              bookingId={myBooking?.id ?? null}
-              path={path}
-            />
+            <BookButton occurrenceId={occId} booking={myBooking} path={path} />
           </div>
         </CardContent>
       </Card>

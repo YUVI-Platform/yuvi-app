@@ -1,10 +1,11 @@
 // app/(protected)/components/bookOccurrenceAction.ts
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { supabaseServerAction } from "@/lib/supabaseServer";
-import type { TablesInsert, Enums } from "@/types/supabase";
+import type { Enums } from "@/types/supabase";
 
-type ActionState =
+export type ActionState =
   | { ok: true; bookingId: string }
   | { ok: false; error: string };
 
@@ -12,86 +13,110 @@ export async function bookOccurrenceAction(
   _prev: ActionState | undefined,
   formData: FormData
 ): Promise<ActionState> {
-  try {
-    const occurrenceId = formData.get("occurrenceId");
-    const path = formData.get("path");
+  const occurrenceId = String(formData.get("occurrenceId") || "");
+  const path = String(formData.get("path") || "/(protected)/dashboard/athlete");
 
-    console.log("[bookOccurrenceAction] start", {
-      occurrenceId,
-      path,
-      env: process.env.NODE_ENV,
-    });
+  if (!occurrenceId) return { ok: false, error: "Missing occurrenceId" };
 
-    if (typeof occurrenceId !== "string" || !occurrenceId) {
-      console.warn("[bookOccurrenceAction] missing occurrenceId");
-      return { ok: false, error: "Missing occurrenceId" };
-    }
+  const supa = await supabaseServerAction();
+  const { data: me } = await supa.auth.getUser();
+  if (!me?.user) return { ok: false, error: "Not authenticated" };
 
-    const supa = await supabaseServerAction();
-    const { data: userRes, error: authErr } = await supa.auth.getUser();
+  // 1) Gibt's irgendeine Buchung für dieses Pair? (egal welcher Status)
+  const { data: existing, error: exErr } = await supa
+    .from("bookings")
+    .select("id,status")
+    .eq("occurrence_id", occurrenceId)
+    .eq("athlete_user_id", me.user.id)
+    .maybeSingle();
 
-    if (authErr) {
-      console.error("[bookOccurrenceAction] getUser error:", authErr);
-    }
-    console.log("[bookOccurrenceAction] user", userRes?.user?.id);
+  if (exErr) return { ok: false, error: exErr.message };
 
-    if (!userRes?.user) {
-      return { ok: false, error: "Not authenticated" };
-    }
+  // 2) Wenn aktiv -> Abbrechen
+  if (existing && ["pending", "confirmed"].includes(existing.status)) {
+    return { ok: false, error: "already booked" };
+  }
 
-    // Doppelbuchung vermeiden
-    const { data: existing, error: existingErr } = await supa
+  // 3) Optional: Seats prüfen (falls du Überbuchung verhindern willst)
+  //    -> nutzt deine DB-Funktion seats_left(p_hold_minutes, p_occurrence)
+  const { data: seatsLeft, error: seatsErr } = await supa.rpc("seats_left", {
+    p_occurrence: occurrenceId,
+    p_hold_minutes: 15,
+  });
+  if (seatsErr) return { ok: false, error: seatsErr.message };
+  if ((seatsLeft ?? 0) <= 0) {
+    return { ok: false, error: "no seats left" };
+  }
+
+  // 4A) Reaktivieren einer stornierten/abgeschlossenen/no_show Buchung
+  if (existing) {
+    const { data: upd, error: updErr } = await supa
+      .from("bookings")
+      .update({
+        status: "pending" as Enums<"booking_status">,
+        payment: "none" as Enums<"payment_status">,
+        checked_in_at: null,
+        checkin_code: null,
+      })
+      .eq("id", existing.id)
+      .select("id")
+      .maybeSingle();
+
+    if (updErr) return { ok: false, error: updErr.message };
+
+    revalidatePath(path);
+    return { ok: true, bookingId: upd!.id };
+  }
+
+  // 4B) Ersteintrag
+  const { data: ins, error: insErr } = await supa
+    .from("bookings")
+    .insert({
+      occurrence_id: occurrenceId,
+      athlete_user_id: me.user.id,
+      status: "pending" as Enums<"booking_status">,
+      payment: "none" as Enums<"payment_status">,
+    })
+    .select("id")
+    .maybeSingle();
+
+  // Race-Condition-Guard: Falls parallel jemand reaktiviert/insertet -> trotzdem reaktivieren
+  if (insErr?.code === "23505") {
+    const { data: again } = await supa
       .from("bookings")
       .select("id,status")
       .eq("occurrence_id", occurrenceId)
-      .eq("athlete_user_id", userRes.user.id)
-      .in("status", ["pending", "confirmed"])
+      .eq("athlete_user_id", me.user.id)
       .maybeSingle();
 
-    if (existingErr) {
-      console.error(
-        "[bookOccurrenceAction] existing lookup error:",
-        existingErr
-      );
-    } else {
-      console.log("[bookOccurrenceAction] existing", existing ?? null);
+    if (again && ["cancelled", "completed", "no_show"].includes(again.status)) {
+      const { data: upd2, error: upd2Err } = await supa
+        .from("bookings")
+        .update({
+          status: "pending" as Enums<"booking_status">,
+          payment: "none" as Enums<"payment_status">,
+          checked_in_at: null,
+          checkin_code: null,
+        })
+        .eq("id", again.id)
+        .select("id")
+        .maybeSingle();
+      if (upd2Err) return { ok: false, error: upd2Err.message };
+      revalidatePath(path);
+      return { ok: true, bookingId: upd2!.id };
     }
 
-    if (existing?.id) {
-      console.warn("[bookOccurrenceAction] already booked:", existing.id);
-      return { ok: false, error: "Bereits gebucht." };
+    // Wenn aktiv, sauber melden
+    if (again && ["pending", "confirmed"].includes(again.status)) {
+      return { ok: false, error: "already booked" };
     }
 
-    const newBooking: TablesInsert<"bookings"> = {
-      occurrence_id: occurrenceId,
-      athlete_user_id: userRes.user.id,
-      status: "pending" satisfies Enums<"booking_status">,
-      payment: "none" satisfies Enums<"payment_status">,
-    };
-
-    const { data, error } = await supa
-      .from("bookings")
-      .insert(newBooking)
-      .select("id")
-      .single();
-
-    if (error || !data?.id) {
-      console.error("[bookOccurrenceAction] insert error:", error);
-      return { ok: false, error: error?.message ?? "Insert failed" };
-    }
-
-    console.log("[bookOccurrenceAction] success bookingId", data.id);
-
-    // WICHTIG: kein revalidatePath hier – wir refreshen im Client nach dem Dialog
-    return { ok: true, bookingId: data.id };
-  } catch (e) {
-    console.error("[bookOccurrenceAction] unhandled error:", e);
-    const msg =
-      e instanceof Error
-        ? e.message
-        : typeof e === "string"
-        ? e
-        : "Unknown error";
-    return { ok: false, error: `Unhandled: ${msg}` };
+    // Sonst echten Fehler zurück
+    return { ok: false, error: insErr.message };
   }
+
+  if (insErr) return { ok: false, error: insErr.message };
+
+  revalidatePath(path);
+  return { ok: true, bookingId: ins!.id };
 }

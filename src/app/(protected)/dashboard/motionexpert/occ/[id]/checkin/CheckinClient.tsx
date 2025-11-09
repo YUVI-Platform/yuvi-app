@@ -2,18 +2,33 @@
 "use client";
 
 import * as React from "react";
+import { supabase } from "@/lib/supabaseBrowser";
 import { QR } from "@/components/qr/QR";
 
+type BookingRow = {
+  id: string;
+  athlete_user_id: string;
+  status: "pending" | "confirmed" | "cancelled" | "completed" | "no_show";
+  payment: "none" | "reserved" | "paid" | "refunded";
+  checked_in_at: string | null;
+  profile: { name: string; avatar_url: string | null };
+};
+
 export default function CheckinClient({
+  occId,
   qrUrl,
   token,
   expiresAt,
+  initialBookings,
 }: {
+  occId: string;
   qrUrl: string;
   token: string;
   expiresAt: string;
+  initialBookings: BookingRow[];
 }) {
   const [now, setNow] = React.useState(() => Date.now());
+  const [rows, setRows] = React.useState<BookingRow[]>(initialBookings ?? []);
 
   React.useEffect(() => {
     const i = setInterval(() => setNow(Date.now()), 1000);
@@ -26,8 +41,79 @@ export default function CheckinClient({
   const mm = String(Math.floor(msLeft / 60000)).padStart(2, "0");
   const ss = String(Math.floor((msLeft % 60000) / 1000)).padStart(2, "0");
 
+  // Helper: Buchungen + Profile clientseitig nachladen (RLS muss passen!)
+  async function fetchBookings() {
+    const { data: bookings } = await supabase
+      .from("bookings")
+      .select("id, athlete_user_id, status, payment, checked_in_at")
+      .eq("occurrence_id", occId);
+
+    const ids = Array.from(
+      new Set((bookings ?? []).map((b) => b.athlete_user_id))
+    ).filter(Boolean);
+    const profilesMap: Record<
+      string,
+      { name: string; avatar_url: string | null }
+    > = {};
+    if (ids.length) {
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("user_id, name, avatar_url")
+        .in("user_id", ids);
+      for (const p of profs ?? [])
+        profilesMap[p.user_id] = { name: p.name, avatar_url: p.avatar_url };
+    }
+
+    setRows(
+      (bookings ?? []).map((b) => ({
+        ...b,
+        profile: profilesMap[b.athlete_user_id] ?? {
+          name: b.athlete_user_id,
+          avatar_url: null,
+        },
+      }))
+    );
+  }
+
+  // Realtime-Updates für Änderungen an bookings der Occurrence
+  React.useEffect(() => {
+    // Initial refresh (falls Seite lange offen)
+    fetchBookings();
+
+    const ch = supabase
+      .channel(`occ-${occId}-bookings`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "bookings",
+          filter: `occurrence_id=eq.${occId}`,
+        },
+        () => fetchBookings()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(ch);
+    };
+  }, [occId]);
+
+  const checkedIn = rows
+    .filter(
+      (r) =>
+        !!r.checked_in_at &&
+        (r.status === "confirmed" || r.status === "completed")
+    )
+    .sort((a, b) =>
+      (a.checked_in_at || "").localeCompare(b.checked_in_at || "")
+    );
+  const expected = rows.filter(
+    (r) => !r.checked_in_at && r.status !== "cancelled"
+  );
+
   return (
-    <div className="mx-auto max-w-2xl p-6 space-y-6">
+    <div className="mx-auto max-w-3xl p-6 space-y-8">
       <div>
         <h1 className="text-2xl font-semibold">Check-in QR</h1>
         <p className="text-sm text-slate-600">
@@ -41,7 +127,6 @@ export default function CheckinClient({
       </div>
 
       <div className="flex flex-col items-center gap-4 rounded-xl border bg-white p-6">
-        {/* Lokales Canvas-QR, kein next/image & keine Remote-Domain nötig */}
         <QR value={qrUrl} size={280} />
 
         <div className="text-center">
@@ -80,6 +165,100 @@ export default function CheckinClient({
             </a>
           </div>
         )}
+      </div>
+
+      {/* Teilnehmerstatus */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <section className="rounded-xl border bg-white p-4">
+          <h2 className="font-semibold mb-3">
+            Eingecheckt ({checkedIn.length})
+          </h2>
+          <ul className="space-y-2">
+            {checkedIn.map((r) => (
+              <li
+                key={r.id}
+                className="flex items-center justify-between rounded-lg border px-3 py-2"
+              >
+                <div className="flex items-center gap-3">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={r.profile?.avatar_url || "/avatar.png"}
+                    alt=""
+                    className="h-8 w-8 rounded-full object-cover"
+                  />
+                  <div className="text-sm">
+                    <div className="font-medium">
+                      {r.profile?.name ?? r.athlete_user_id}
+                    </div>
+                    <div className="text-xs text-slate-500">
+                      {r.checked_in_at
+                        ? new Date(r.checked_in_at).toLocaleTimeString()
+                        : ""}
+                    </div>
+                  </div>
+                </div>
+                <span
+                  className={
+                    "text-xs rounded-full px-2 py-0.5 ring-1 " +
+                    (r.payment === "paid"
+                      ? "bg-green-50 text-green-700 ring-green-200"
+                      : "bg-amber-50 text-amber-700 ring-amber-200")
+                  }
+                >
+                  {r.payment === "paid" ? "Bezahlt" : "Offen"}
+                </span>
+              </li>
+            ))}
+            {checkedIn.length === 0 && (
+              <li className="text-sm text-slate-500">
+                Noch niemand eingecheckt.
+              </li>
+            )}
+          </ul>
+        </section>
+
+        <section className="rounded-xl border bg-white p-4">
+          <h2 className="font-semibold mb-3">Erwartet ({expected.length})</h2>
+          <ul className="space-y-2">
+            {expected.map((r) => (
+              <li
+                key={r.id}
+                className="flex items-center justify-between rounded-lg border px-3 py-2"
+              >
+                <div className="flex items-center gap-3">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={r.profile?.avatar_url || "/avatar.png"}
+                    alt=""
+                    className="h-8 w-8 rounded-full object-cover"
+                  />
+                  <div className="text-sm">
+                    <div className="font-medium">
+                      {r.profile?.name ?? r.athlete_user_id}
+                    </div>
+                    <div className="text-xs text-slate-500">
+                      Status:{" "}
+                      {r.status === "pending" ? "Reserviert" : "Bestätigt"}
+                    </div>
+                  </div>
+                </div>
+                <span
+                  className={
+                    "text-xs rounded-full px-2 py-0.5 ring-1 " +
+                    (r.payment === "paid"
+                      ? "bg-green-50 text-green-700 ring-green-200"
+                      : "bg-amber-50 text-amber-700 ring-amber-200")
+                  }
+                >
+                  {r.payment === "paid" ? "Bezahlt" : "Offen"}
+                </span>
+              </li>
+            ))}
+            {expected.length === 0 && (
+              <li className="text-sm text-slate-500">Niemand ausstehend 🎉</li>
+            )}
+          </ul>
+        </section>
       </div>
     </div>
   );
