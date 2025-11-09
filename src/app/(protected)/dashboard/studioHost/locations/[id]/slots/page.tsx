@@ -20,7 +20,7 @@ export default async function SlotsPage({
   const supa = await supabaseServerRead();
   const { data: me } = await supa.auth.getUser();
   if (!me?.user)
-    redirect(`/login?redirectTo=/dashboard/studioHost/locations/${id}/slots`); // ← CamelCase
+    redirect(`/login?redirectTo=/dashboard/studiohost/locations/${id}/slots`); // ← CamelCase
 
   const uid = me.user.id;
 
@@ -29,10 +29,10 @@ export default async function SlotsPage({
     .select("id,title,owner_user_id,host_user_id,price_per_slot")
     .eq("id", id)
     .maybeSingle();
-  if (!loc) redirect("/dashboard/studioHost/locations"); // ← CamelCase
+  if (!loc) redirect("/dashboard/studiohost/locations"); // ← CamelCase
 
   const canEdit = loc.owner_user_id === uid || loc.host_user_id === uid;
-  if (!canEdit) redirect("/dashboard/studioHost/locations"); // ← CamelCase
+  if (!canEdit) redirect("/dashboard/studiohost/locations"); // ← CamelCase
 
   const { data: slots } = await supa
     .from("studio_slots")
@@ -73,7 +73,7 @@ export default async function SlotsPage({
             </b>{" "}
             {!Number.isFinite(Number(loc.price_per_slot)) && (
               <Link
-                href={`/dashboard/studioHost/locations/${id}/edit`} // ← CamelCase
+                href={`/dashboard/studiohost/locations/${id}/edit`} // ← CamelCase
                 className="ml-2 underline"
               >
                 jetzt festlegen
@@ -83,7 +83,7 @@ export default async function SlotsPage({
         </div>
 
         <Link
-          href={`/dashboard/studioHost/locations/${id}`} // ← CamelCase
+          href={`/dashboard/studiohost/locations/${id}`} // ← CamelCase
           className="text-sm underline text-slate-600"
         >
           Zurück zur Location

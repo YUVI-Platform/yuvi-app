@@ -1,4 +1,4 @@
-// src/app/(protected)/dashboard/studioHost/locations/new/ui/StudioPreviewDialog.tsx
+// src/app/(protected)/dashboard/studiohost/locations/new/ui/StudioPreviewDialog.tsx
 "use client";
 
 import clsx from "clsx";

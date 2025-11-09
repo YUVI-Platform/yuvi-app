@@ -29,7 +29,7 @@ export type LocationRow = {
 export default async function StudioHostLocationsPage() {
   const supa = await supabaseServerRead();
   const { data: me } = await supa.auth.getUser();
-  if (!me?.user) redirect("/login?redirectTo=/dashboard/studioHost/locations");
+  if (!me?.user) redirect("/login?redirectTo=/dashboard/studiohost/locations");
   const uid = me.user.id;
 
   // nur eigene Locations (Owner ODER Host)

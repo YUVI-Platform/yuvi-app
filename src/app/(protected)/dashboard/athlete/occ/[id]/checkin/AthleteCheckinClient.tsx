@@ -1,8 +1,11 @@
+// src/app/(protected)/dashboard/athlete/occ/[id]/checkin/AthleteCheckinClient.tsx
 "use client";
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import QRScannerOverlay from "@/components/qr/QRScannerOverlay";
+import QRScannerOverlay, {
+  QRScannerHandle,
+} from "@/components/qr/QRScannerOverlay";
 import { athleteCheckinAction } from "./actions";
 
 export default function AthleteCheckinClient({
@@ -18,8 +21,8 @@ export default function AthleteCheckinClient({
   const [ok, setOk] = React.useState<boolean | null>(null);
   const [err, setErr] = React.useState("");
   const [scanOpen, setScanOpen] = React.useState(false);
+  const scanRef = React.useRef<QRScannerHandle>(null);
 
-  // Auto-Check-in wenn ?code=... vorhanden
   React.useEffect(() => {
     if (!initialCode) return;
     (async () => {
@@ -38,10 +41,6 @@ export default function AthleteCheckinClient({
   }, [occurrenceId, initialCode]);
 
   function handleDetected(text: string) {
-    // Reset Status für erneuten Versuch
-    setOk(null);
-    setErr("");
-
     try {
       const u = new URL(text, window.location.origin);
       const c = u.searchParams.get("code") ?? "";
@@ -59,15 +58,7 @@ export default function AthleteCheckinClient({
       router.replace(`?code=${encodeURIComponent(c)}`);
       setCode(c);
     } catch {
-      // Falls der QR nur den Code enthält (kein URL-Format), akzeptieren:
-      const plain = text?.trim();
-      if (plain) {
-        setScanOpen(false);
-        setCode(plain);
-        router.replace(`?code=${encodeURIComponent(plain)}`);
-      } else {
-        setErr("Ungültiger QR-Inhalt.");
-      }
+      setErr("Ungültiger QR-Inhalt.");
     }
   }
 
@@ -78,7 +69,6 @@ export default function AthleteCheckinClient({
         return;
       }
       setLoading(true);
-      setOk(null);
       await athleteCheckinAction(occurrenceId, code);
       setOk(true);
       setErr("");
@@ -90,10 +80,16 @@ export default function AthleteCheckinClient({
     }
   }
 
+  // 👉 Wichtig: Kamera im *Click-Handler* starten
+  async function openScannerNow() {
+    setScanOpen(true);
+    // nächste Tick, dann sofort beginnen (noch im selben User-Event)
+    requestAnimationFrame(() => scanRef.current?.begin());
+  }
+
   return (
     <div className="mx-auto max-w-md p-6 space-y-6">
       <h1 className="text-2xl font-semibold">Teilnahme bestätigen</h1>
-
       {loading && (
         <div className="rounded-md border p-3 text-sm">Check-in läuft…</div>
       )}
@@ -114,11 +110,7 @@ export default function AthleteCheckinClient({
           className="w-full rounded-md border px-3 py-2"
           placeholder="6–12-stelliger Code"
           value={code}
-          onChange={(e) => {
-            setOk(null);
-            setErr("");
-            setCode(e.target.value);
-          }}
+          onChange={(e) => setCode(e.target.value)}
           inputMode="numeric"
         />
         <div className="flex gap-2">
@@ -132,11 +124,7 @@ export default function AthleteCheckinClient({
           </button>
           <button
             type="button"
-            onClick={() => {
-              setOk(null);
-              setErr("");
-              setScanOpen(true);
-            }}
+            onClick={openScannerNow}
             className="rounded-md border px-3 py-1.5 text-sm"
           >
             QR scannen
@@ -145,6 +133,7 @@ export default function AthleteCheckinClient({
       </div>
 
       <QRScannerOverlay
+        ref={scanRef}
         open={scanOpen}
         onOpenChange={setScanOpen}
         onDetected={handleDetected}
