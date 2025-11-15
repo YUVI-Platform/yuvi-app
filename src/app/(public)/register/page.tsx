@@ -193,3 +193,5 @@ export default async function Register({ searchParams }: { searchParams: SP }) {
     </main>
   );
 }
+
+//TODO: FAVICON TAUSCHEN

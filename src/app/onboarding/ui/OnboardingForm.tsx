@@ -59,7 +59,7 @@ export default function OnboardingForm({
       className="relative rounded-2xl border bg-white p-5 shadow-sm"
     >
       <input type="hidden" name="uid" value={uid} />
-
+      <input type="hidden" name="avatar_url" value={avatarUrl || ""} />
       {/* Progress bar (subtle) */}
       <div className="mb-4 h-1 w-full rounded bg-slate-100 overflow-hidden">
         <motion.div
@@ -69,7 +69,6 @@ export default function OnboardingForm({
           transition={{ duration: 0.25 }}
         />
       </div>
-
       {/* Steps */}
       <div className="min-h-[320px]">
         <AnimatePresence mode="wait" initial={false}>
@@ -112,11 +111,11 @@ export default function OnboardingForm({
                   initialUrl={defaultValues.avatar_url}
                   onUploaded={(url) => setAvatarUrl(url)}
                 />
-                <input
+                {/* <input
                   type="hidden"
                   name="avatar_url"
                   value={avatarUrl || ""}
-                />
+                /> */}
                 <p className="text-xs text-slate-500">
                   Tipp: Quadratisches Bild für bestes Ergebnis.
                 </p>
@@ -145,7 +144,6 @@ export default function OnboardingForm({
           )}
         </AnimatePresence>
       </div>
-
       {/* Sticky bottom actions (safe-area aware) */}
       <div className="sticky bottom-0 left-0 right-0 -mx-5 -mb-5 mt-6 bg-white/90 backdrop-blur border-t">
         <div className="px-5 pt-4 pb-[calc(16px+env(safe-area-inset-bottom))] flex items-center gap-3">
@@ -172,7 +170,6 @@ export default function OnboardingForm({
           )}
         </div>
       </div>
-
       <PendingOverlay text="Speichere dein Profil…" />
     </form>
   );
