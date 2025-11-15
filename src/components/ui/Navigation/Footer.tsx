@@ -3,7 +3,7 @@ import { Instagram, Youtube, Linkedin } from "feather-icons-react";
 export default function Footer() {
   return (
     <footer className="flex justify-center items-center w-full mt-20 md:px-20">
-      <div className="flex flex-col justify-center items-center min-h-72 w-full max-w-[1920px] bg-[#bddfff] text-yuvi-white rounded-t-4xl">
+      <div className="flex flex-col justify-center items-center min-h-72 w-full max-w-[1920px] bg-yuvi-skyblue text-yuvi-white rounded-t-4xl">
         <div className="flex">
           <div>
             <p className="text-center p-4 text-2xl font-bold">Contact us</p>

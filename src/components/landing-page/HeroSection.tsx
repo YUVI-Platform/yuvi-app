@@ -81,43 +81,77 @@ export const QuickBookingBar = () => {
   const [mode, setMode] = useState<"Studio" | "Session">("Studio");
 
   return (
-    <div className="flex w-fit justify-center items-center mt-6 gap-4 bg-yuvi-white p-2.5 rounded-2xl text-sm shadow-md z-10">
-      <span className="text-yuvi-skyblue text-lg animate-pulse">Book Now!</span>
+    <div
+      className="
+        z-10 w-full max-w-3xl
+        rounded-2xl border border-slate-200 bg-white/90 shadow-md backdrop-blur
+        p-3 sm:p-4
+      "
+    >
+      <div className="flex items-center justify-between gap-3">
+        <span className="hidden sm:inline-block text-yuvi-skyblue text-sm sm:text-base font-semibold">
+          Book now!
+        </span>
 
-      {/* City Input */}
-      <input
-        type="text"
-        list="city-options"
-        placeholder="Where are you?"
-        className="placeholder:font-light border-r border-slate-300 h-full px-2 py-1 focus:outline-none"
-      />
-      <datalist id="city-options">
-        {citySuggestions.map((city) => (
-          <option key={city} value={city} />
-        ))}
-      </datalist>
+        {/* Mode Toggle – nach rechts auf größeren Screens */}
+        <div className="ml-auto hidden sm:block">
+          <ModeToggle mode={mode} onChange={setMode} />
+        </div>
+      </div>
 
-      {/* Movement Type Input */}
-      <input
-        type="text"
-        list="type-options"
-        placeholder="Moving Type?"
-        className="placeholder:font-light h-full px-2 py-1 focus:outline-none"
-      />
-      <datalist id="type-options">
-        {typeSuggestions.map((type) => (
-          <option key={type} value={type} />
-        ))}
-      </datalist>
+      {/* Inputs */}
+      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {/* City */}
+        <div className="flex rounded-xl ring-1 ring-slate-200 focus-within:ring-slate-300 bg-white">
+          <input
+            type="text"
+            list="city-options"
+            placeholder="Where are you?"
+            className="w-full rounded-xl bg-transparent px-3 py-2 text-sm outline-none placeholder:font-light"
+            aria-label="City"
+          />
+          <datalist id="city-options">
+            {citySuggestions.map((city) => (
+              <option key={city} value={city} />
+            ))}
+          </datalist>
+        </div>
 
-      {/* Switch Button */}
-      <ModeToggle mode={mode} onChange={setMode} />
-      <button
-        onClick={() => setMode(mode === "Studio" ? "Session" : "Studio")}
-        className="flex items-center justify-center gap-2 px-4 py-2 bg-yuvi-rose text-white rounded-2xl cursor-pointer transition hover:bg-yuvi-skyblue"
-      >
-        <ArrowRightIcon />
-      </button>
+        {/* Type */}
+        <div className="flex rounded-xl ring-1 ring-slate-200 focus-within:ring-slate-300 bg-white">
+          <input
+            type="text"
+            list="type-options"
+            placeholder="Moving Type?"
+            className="w-full rounded-xl bg-transparent px-3 py-2 text-sm outline-none placeholder:font-light"
+            aria-label="Movement type"
+          />
+          <datalist id="type-options">
+            {typeSuggestions.map((type) => (
+              <option key={type} value={type} />
+            ))}
+          </datalist>
+        </div>
+
+        {/* CTA + Mode (mobile) */}
+        <div className="flex items-stretch gap-2">
+          <button
+            onClick={() => setMode(mode === "Studio" ? "Session" : "Studio")}
+            className="
+              flex-1 rounded-xl px-4 py-2 text-sm font-medium bg-yuvi-skyblue text-white
+              transition hover:bg-yuvi-skyblue active:opacity-90
+            "
+            aria-label="Search"
+          >
+            Search {mode === "Studio" ? "Studios" : "Sessions"}
+          </button>
+
+          {/* Mode Toggle – für mobile sichtbar */}
+          <div className="sm:hidden">
+            <ModeToggle mode={mode} onChange={setMode} />
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
@@ -136,17 +170,17 @@ export const ModeToggle = ({
       onValueChange={(val) => {
         if (val) onChange(val as "Studio" | "Session");
       }}
-      className="border border-yuvi-rose rounded-2xl p-1 bg-white "
+      className="border border-yuvi-skyblue rounded-2xl p-1 bg-white "
     >
       <ToggleGroupItem
         value="Studio"
-        className="px-4 py-2 text-sm font-semibold data-[state=on]:bg-yuvi-rose data-[state=on]:text-white rounded-xl transition-all duration-300 ease-in-out cursor-pointer"
+        className="px-4 py-2 text-sm font-semibold data-[state=on]:bg-yuvi-skyblue data-[state=on]:text-white rounded-xl transition-all duration-300 ease-in-out cursor-pointer"
       >
         Studio
       </ToggleGroupItem>
       <ToggleGroupItem
         value="Session"
-        className="px-4 py-2 text-sm font-semibold data-[state=on]:bg-yuvi-rose data-[state=on]:text-white rounded-xl transition-all duration-300 ease-in-out cursor-pointer"
+        className="px-4 py-2 text-sm font-semibold data-[state=on]:bg-yuvi-skyblue data-[state=on]:text-white rounded-xl transition-all duration-300 ease-in-out cursor-pointer"
       >
         Session
       </ToggleGroupItem>

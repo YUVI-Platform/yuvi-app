@@ -70,7 +70,7 @@ export default async function NewSessionPage() {
   }));
 
   return (
-    <div className="mx-auto max-w-4xl">
+    <div className="mx-auto max-w-3xl">
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Neue Session</h1>
