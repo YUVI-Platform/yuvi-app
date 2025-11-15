@@ -12,10 +12,12 @@ export default async function AthleteDashboardPage() {
 
   const nowIso = new Date().toISOString();
 
-  // 1) Meine künftigen Buchungen
+  // 1) Meine künftigen Buchungen (inkl. checked_in_at)
   const { data: myBookings } = await supa
     .from("bookings")
-    .select("id, occurrence_id, status, session_occurrences(starts_at)")
+    .select(
+      "id, occurrence_id, status, checked_in_at, session_occurrences(starts_at)"
+    )
     .eq("athlete_user_id", uid);
 
   const futureMyBookings = (myBookings ?? []).filter((b: any) => {
@@ -27,14 +29,20 @@ export default async function AthleteDashboardPage() {
     );
   });
 
-  // occurrenceId -> bookingId (für initialBookingId)
-  const myBookingIdByOcc = new Map<string, string>();
+  // occurrenceId -> { id, checked_in_at }
+  const myBookingByOcc = new Map<
+    string,
+    { id: string; checked_in_at: string | null }
+  >();
   for (const b of futureMyBookings) {
-    if (!myBookingIdByOcc.has(b.occurrence_id)) {
-      myBookingIdByOcc.set(b.occurrence_id, b.id);
+    if (!myBookingByOcc.has(b.occurrence_id)) {
+      myBookingByOcc.set(b.occurrence_id, {
+        id: b.id,
+        checked_in_at: b.checked_in_at ?? null,
+      });
     }
   }
-  const myOccIds = [...myBookingIdByOcc.keys()];
+  const myOccIds = [...myBookingByOcc.keys()];
   const myOccIdSet = new Set(myOccIds);
 
   // Gemeinsame Select-Liste
@@ -69,18 +77,12 @@ export default async function AthleteDashboardPage() {
     .limit(500);
   if (upErr) throw new Error(`upcoming error: ${upErr.message}`);
 
-  // Available = kommende ohne MEINE gebuchten O-IDs (keine Session-Filter!)
+  // 4) Empfohlen = kommende ohne MEINE gebuchten O-IDs
   const recommendedRaw = (upcomingRaw ?? []).filter(
     (o: any) => !myOccIdSet.has(o.id)
   );
 
-  const softlaunchRows = recommendedRaw.filter((o: any) =>
-    String(o.sessions?.title ?? "")
-      .toLowerCase()
-      .includes("softlaunch")
-  );
-
-  // 4) Buchungs-Counts
+  // 5) Buchungs-Counts
   const occIdsAll = Array.from(
     new Set([
       ...(myOccsRaw ?? []).map((o: any) => o.id),
@@ -105,7 +107,7 @@ export default async function AthleteDashboardPage() {
     );
   }
 
-  // 5) Experten
+  // 6) Experten laden (für Karten)
   function collectExpertIds(rows: any[] = []) {
     const set = new Set<string>();
     for (const o of rows) {
@@ -139,7 +141,6 @@ export default async function AthleteDashboardPage() {
     ])
   );
 
-  // Ratings
   const { data: expertRatings, error: rateErr } = expertIds.length
     ? await supa
         .from("motion_expert_profiles")
@@ -161,60 +162,69 @@ export default async function AthleteDashboardPage() {
     ])
   );
 
-  // 6) Mapper
-  const mapOcc = (o: any) => ({
-    id: o.id as string,
-    starts_at: o.starts_at as string,
-    ends_at: o.ends_at as string,
-    capacity: o.capacity ?? null,
-    booked_count: bookedCountByOcc.get(o.id) ?? 0,
-    sessions: o.sessions
-      ? {
-          id: o.sessions.id as string,
-          title: (o.sessions.title ?? null) as string | null,
-          image_urls: (o.sessions.image_urls ?? null) as string[] | null,
-          session_type: (o.sessions.session_type ?? null) as string | null,
-          price_cents: (o.sessions.price_cents ?? null) as number | null,
-          tags: (o.sessions.tags ?? null) as string[] | null,
-          location_type: (o.sessions.location_type ?? null) as string | null,
-          expert: (() => {
-            const eid = o.sessions.expert_user_id as string | null;
-            if (!eid) return null;
-            const prof = expertById.get(eid);
-            const rat = ratingById.get(eid);
-            return prof
+  // 7) Mapper – can_cancel & my_booking mitgeben
+  const mapOcc = (o: any) => {
+    const myBk = myBookingByOcc.get(o.id) ?? null;
+    const canCancel = myBk ? myBk.checked_in_at == null : false;
+
+    return {
+      id: o.id as string,
+      starts_at: o.starts_at as string,
+      ends_at: o.ends_at as string,
+      capacity: o.capacity ?? null,
+      booked_count: bookedCountByOcc.get(o.id) ?? 0,
+      sessions: o.sessions
+        ? {
+            id: o.sessions.id as string,
+            title: (o.sessions.title ?? null) as string | null,
+            image_urls: (o.sessions.image_urls ?? null) as string[] | null,
+            session_type: (o.sessions.session_type ?? null) as string | null,
+            price_cents: (o.sessions.price_cents ?? null) as number | null,
+            tags: (o.sessions.tags ?? null) as string[] | null,
+            location_type: (o.sessions.location_type ?? null) as string | null,
+            expert: (() => {
+              const eid = o.sessions.expert_user_id as string | null;
+              if (!eid) return null;
+              const prof = expertById.get(eid);
+              const rat = ratingById.get(eid);
+              return prof
+                ? {
+                    name: prof.name,
+                    avatar_url: prof.avatar_url,
+                    rating_avg: rat?.rating_avg ?? null,
+                    rating_count: rat?.rating_count ?? null,
+                  }
+                : null;
+            })(),
+          }
+        : null,
+      studio_slots: o.studio_slots
+        ? {
+            id: o.studio_slots.id as string,
+            capacity: (o.studio_slots.capacity ?? null) as number | null,
+            studio_locations: o.studio_slots.studio_locations
               ? {
-                  name: prof.name,
-                  avatar_url: prof.avatar_url,
-                  rating_avg: rat?.rating_avg ?? null,
-                  rating_count: rat?.rating_count ?? null,
+                  id: o.studio_slots.studio_locations.id as string,
+                  title: (o.studio_slots.studio_locations.title ?? null) as
+                    | string
+                    | null,
+                  address: (o.studio_slots.studio_locations.address ??
+                    null) as Record<string, unknown> | null,
+                  image_urls: (o.studio_slots.studio_locations.image_urls ??
+                    null) as string[] | null,
+                  max_participants: (o.studio_slots.studio_locations
+                    .max_participants ?? null) as number | null,
                 }
-              : null;
-          })(),
-        }
-      : null,
-    studio_slots: o.studio_slots
-      ? {
-          id: o.studio_slots.id as string,
-          capacity: (o.studio_slots.capacity ?? null) as number | null,
-          studio_locations: o.studio_slots.studio_locations
-            ? {
-                id: o.studio_slots.studio_locations.id as string,
-                title: (o.studio_slots.studio_locations.title ?? null) as
-                  | string
-                  | null,
-                address: (o.studio_slots.studio_locations.address ??
-                  null) as Record<string, unknown> | null,
-                image_urls: (o.studio_slots.studio_locations.image_urls ??
-                  null) as string[] | null,
-                max_participants: (o.studio_slots.studio_locations
-                  .max_participants ?? null) as number | null,
-              }
-            : null,
-        }
-      : null,
-    initialBookingId: (myBookingIdByOcc.get(o.id) ?? null) as string | null,
-  });
+              : null,
+          }
+        : null,
+
+      // WICHTIG für Buttons:
+      initialBookingId: (myBk?.id ?? null) as string | null,
+      my_booking: myBk, // { id, checked_in_at } | null
+      can_cancel: canCancel as boolean, // false, wenn eingecheckt
+    };
+  };
 
   const myOccurrences = (myOccsRaw ?? []).map(mapOcc);
   const recommended = (recommendedRaw ?? []).map(mapOcc);
@@ -223,4 +233,4 @@ export default async function AthleteDashboardPage() {
     <DashboardClient myOccurrences={myOccurrences} recommended={recommended} />
   );
 }
-//TODO: SESSONS muss anders heiße zum beispiel EVENT wording macht keinen sinn die occs sind eingentlich die sessions
+//TODO: SESSIONS wording anpassen (Events); Preparation time etc.

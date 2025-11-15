@@ -1,3 +1,4 @@
+// src/app/(protected)/dashboard/athlete/ui/SessionCard.tsx
 "use client";
 
 import * as React from "react";
@@ -8,7 +9,6 @@ import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { bookOccurrenceAction } from "@/app/(protected)/components/bookOccurrenceAction";
 import { cancelMyBookingAction } from "@/app/(protected)/components/cancelMyBookingAction";
-// ⬇️ NEU: Animationen
 import { motion } from "framer-motion";
 
 function fmtTime(iso: string) {
@@ -119,6 +119,12 @@ export default function SessionCard({
     ends_at: string;
     capacity?: number | null;
     booked_count?: number | null;
+
+    /** ✅ optional, damit rückwärts-kompatibel */
+    my_booking?: { id: string; checked_in_at?: string | null } | null;
+    /** ✅ optional, wenn schon serverseitig berechnet */
+    can_cancel?: boolean;
+
     sessions?: {
       id: string;
       title: string | null;
@@ -141,6 +147,7 @@ export default function SessionCard({
         rating_count?: number | null;
       } | null;
     } | null;
+
     studio_slots?: {
       studio_locations?: {
         title?: string | null;
@@ -166,14 +173,10 @@ export default function SessionCard({
     FormData
   >(bookOccurrenceAction, undefined);
   const [openSuccess, setOpenSuccess] = React.useState(false);
-
   React.useEffect(() => {
-    // Debug hilft, ob der Server-Action-State überhaupt kommt
-    // console.log("bookState changed:", bookState);
     if (bookState?.ok) {
       setLocalBookingId(bookState.bookingId);
-      setOpenSuccess(true); // ✅ Dialog auf
-      // kein refresh hier
+      setOpenSuccess(true);
     }
   }, [bookState?.ok, bookState]);
 
@@ -209,6 +212,11 @@ export default function SessionCard({
 
   const bookedCount = occurrence.booked_count ?? 0;
   const capacity = occurrence.capacity ?? null;
+
+  /** 🔒 Business-Rule: Nach Check-in keine Stornierung mehr */
+  const checkedIn = Boolean(occurrence.my_booking?.checked_in_at);
+  const canCancelComputed =
+    occurrence.can_cancel ?? (isBooked ? !checkedIn : false);
 
   return (
     <>
@@ -303,11 +311,31 @@ export default function SessionCard({
                 <input type="hidden" name="path" value={path} />
                 <button
                   type="submit"
-                  disabled={pendingCancel}
-                  className="w-full rounded-lg bg-rose-600 px-4 py-2 text-sm text-white hover:bg-rose-700 disabled:opacity-50"
+                  disabled={pendingCancel || !canCancelComputed}
+                  aria-disabled={pendingCancel || !canCancelComputed}
+                  title={
+                    !canCancelComputed
+                      ? "Stornierung nach Check-in nicht mehr möglich"
+                      : "Buchung stornieren"
+                  }
+                  className={clsx(
+                    "w-full rounded-lg px-4 py-2 text-sm text-white disabled:opacity-50",
+                    canCancelComputed
+                      ? "bg-rose-600 hover:bg-rose-700"
+                      : "bg-slate-400 cursor-not-allowed"
+                  )}
                 >
-                  {pendingCancel ? "Storniere…" : "Session canceln"}
+                  {!canCancelComputed
+                    ? "Check-in erfolgt"
+                    : pendingCancel
+                    ? "Storniere…"
+                    : "Session canceln"}
                 </button>
+                {!canCancelComputed && (
+                  <p className="mt-2 text-xs text-slate-500">
+                    Du bist bereits eingecheckt – Storno ist nicht mehr möglich.
+                  </p>
+                )}
               </form>
             ) : (
               <form action={bookAction} className="col-span-2 sm:col-span-1">
@@ -344,12 +372,12 @@ export default function SessionCard({
         </div>
       </div>
 
-      {/* ✅ EIN Dialog, mit animiertem Content via Framer Motion */}
+      {/* Success Dialog */}
       <Dialog
         open={openSuccess}
         onOpenChange={(next) => {
           setOpenSuccess(next);
-          if (!next) router.refresh(); // refresh erst beim Schließen
+          if (!next) router.refresh();
         }}
       >
         <DialogContent className="sm:max-w-md">
