@@ -79,7 +79,7 @@ export default function AvatarImage({
       alt={alt}
       width={size}
       height={size}
-      className={`rounded-full object-cover ${className}`}
+      className={`rounded-full object-cover aspect-square ${className}`}
       onError={() => setBroken(true)}
       unoptimized={unoptimized || shouldUnopt}
       sizes={`${size}px`}

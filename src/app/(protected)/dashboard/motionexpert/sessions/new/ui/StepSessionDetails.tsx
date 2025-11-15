@@ -12,12 +12,18 @@ export type SessionDetails = {
   capacity?: number | null;
   price_cents?: number | null;
   tags?: string[];
-  image_url?: string | null;
+
+  // ⬇️ neu: mehrere Bilder (primäres = erstes)
+  image_urls?: string[]; // primary = [0]
+  image_url?: string | null; // legacy/back-compat (wird intern auf [0] gesetzt)
+
+  // ⬇️ empfohlenes Level
   recommended_level?: "beginner" | "intermediate" | "advanced" | null;
 
-  // ✅ neu: Self-Hosted Location per ID referenzieren
+  // Self-Hosted Location per ID referenzieren
   self_hosted_location_id?: string | null;
 };
+
 type LocationLite = {
   id: string;
   max_participants: number | null;
@@ -29,10 +35,7 @@ type Props = {
   defaultValues?: Partial<SessionDetails>;
   onChange: (v: SessionDetails) => void;
   onValidChange?: (valid: boolean) => void;
-
-  /** Bevorzugt: komplette Location reinreichen */
   location?: LocationLite | null;
-  /** Fallback: nur die ID – dann wird max/price geladen */
   locationId?: string;
 };
 
@@ -82,12 +85,11 @@ export default function StepSessionDetails({
   );
 
   // Preis (EUR Eingabe -> cents intern)
-  const [priceEuro, setPriceEuro] = useState<string>(() => {
-    if (typeof defaultValues?.price_cents === "number") {
-      return (defaultValues.price_cents / 100).toFixed(2);
-    }
-    return "";
-  });
+  const [priceEuro, setPriceEuro] = useState<string>(() =>
+    typeof defaultValues?.price_cents === "number"
+      ? (defaultValues.price_cents / 100).toFixed(2)
+      : ""
+  );
   const price_cents = useMemo(() => {
     const n = Number(String(priceEuro).replace(",", "."));
     if (!Number.isFinite(n) || String(priceEuro).trim() === "") return null;
@@ -95,15 +97,21 @@ export default function StepSessionDetails({
     return cents >= 0 ? cents : null;
   }, [priceEuro]);
 
-  const [imageUrl, setImageUrl] = useState<string>(
-    defaultValues?.image_url ?? ""
+  // ⬇️ neu: mehrere Bilder
+  const [imageUrls, setImageUrls] = useState<string[]>(
+    defaultValues?.image_urls && defaultValues.image_urls.length > 0
+      ? defaultValues.image_urls
+      : defaultValues?.image_url
+      ? [defaultValues.image_url]
+      : []
   );
-  const [uploadPreview, setUploadPreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
   const [tags, setTags] = useState<string[]>(defaultValues?.tags ?? []);
   const [tagInput, setTagInput] = useState("");
+
+  // ⬇️ empfohlenes Level
   const [fitnessLevel, setFitnessLevel] = useState<Level | "">(
     (defaultValues?.recommended_level ?? "") as Level | ""
   );
@@ -166,20 +174,6 @@ export default function StepSessionDetails({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [locationId]);
 
-  // Wenn locMax sich ändert: ggf. clampen
-  useEffect(() => {
-    if (locMax && typeof capacity === "number" && capacity > locMax) {
-      setCapacity(locMax);
-    }
-  }, [locMax, capacity]);
-
-  useEffect(() => {
-    return () => {
-      if (uploadPreview?.startsWith("blob:"))
-        URL.revokeObjectURL(uploadPreview);
-    };
-  }, [uploadPreview]);
-
   // ---------- Validation ----------
   const isValid = useMemo(() => {
     if (title.trim().length < 3) return false;
@@ -200,8 +194,8 @@ export default function StepSessionDetails({
   }, [isValid, onValidChange]);
 
   // ---------- Upstream sync ----------
-  // ---------- Upstream sync ----------
   useEffect(() => {
+    const trimmedImages = imageUrls.filter(Boolean);
     const payload: SessionDetails = {
       title: title.trim(),
       description: description?.trim() || "",
@@ -209,13 +203,13 @@ export default function StepSessionDetails({
       capacity: capacity === "" ? null : Number(capacity),
       tags,
       price_cents,
-      // ⬇️ wichtig
       recommended_level: fitnessLevel === "" ? null : fitnessLevel,
       self_hosted_location_id: defaultValues?.self_hosted_location_id ?? null,
+
+      // ⬇️ Mehrfachbilder nach oben geben (und legacy field füllen)
+      image_urls: trimmedImages,
+      image_url: trimmedImages.length ? trimmedImages[0] : null,
     };
-    // image_url nur setzen, wenn vorhanden (deins ist ok)
-    const trimmed = imageUrl?.trim();
-    if (trimmed) (payload as any).image_url = trimmed;
 
     onChange(payload);
   }, [
@@ -225,13 +219,13 @@ export default function StepSessionDetails({
     capacity,
     tags,
     price_cents,
-    imageUrl,
+    imageUrls,
     fitnessLevel,
     onChange,
     defaultValues?.self_hosted_location_id,
   ]);
 
-  // ---------- Helpers ----------
+  // ---------- Tag Helpers ----------
   function togglePresetTag(t: string) {
     setTags((prev) =>
       prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]
@@ -252,51 +246,70 @@ export default function StepSessionDetails({
     setTags((prev) => prev.filter((x) => x !== t));
   }
 
-  // Upload
+  // ---------- Upload (multi) ----------
   const dropRef = useRef<HTMLLabelElement>(null);
-  async function handleFile(file: File) {
-    if (!file) return;
+
+  async function uploadOne(file: File): Promise<string> {
+    if (!file.type.startsWith("image/"))
+      throw new Error("Nur Bilddateien erlaubt.");
+    if (file.size > 8 * 1024 * 1024) throw new Error("Max. 8 MB pro Bild.");
+
+    const supa = supabaseBrowser();
+    const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+    const path = `sessions/${crypto.randomUUID()}.${ext}`;
+
+    const { error: upErr } = await supa.storage
+      .from("session-images")
+      .upload(path, file, {
+        cacheControl: "3600",
+        upsert: false,
+        contentType: file.type,
+      });
+    if (upErr) throw upErr;
+
+    const { data: pub } = supa.storage
+      .from("session-images")
+      .getPublicUrl(path);
+    return pub.publicUrl;
+  }
+
+  async function handleFiles(files: FileList | File[]) {
+    const list = Array.from(files);
+    if (!list.length) return;
     setUploadError(null);
     setUploading(true);
     try {
-      if (!file.type.startsWith("image/"))
-        throw new Error("Nur Bilddateien erlaubt.");
-      if (file.size > 8 * 1024 * 1024) throw new Error("Max. 8 MB.");
-
-      const supa = supabaseBrowser();
-      const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
-      const path = `sessions/${crypto.randomUUID()}.${ext}`;
-
-      const { error: upErr } = await supa.storage
-        .from("session-images")
-        .upload(path, file, {
-          cacheControl: "3600",
-          upsert: false,
-          contentType: file.type,
-        });
-
-      if (upErr) throw upErr;
-
-      const { data: pub } = supa.storage
-        .from("session-images")
-        .getPublicUrl(path);
-      setUploadPreview(pub.publicUrl);
-      setImageUrl(pub.publicUrl);
+      const newUrls: string[] = [];
+      // sequenziell (einfach & stabil); wenn du willst: Promise.all mit Limit
+      for (const f of list) {
+        const url = await uploadOne(f);
+        newUrls.push(url);
+      }
+      setImageUrls((prev) => {
+        // dedupe
+        const merged = [...prev, ...newUrls].filter(
+          (v, i, a) => a.indexOf(v) === i
+        );
+        return merged.slice(0, 10); // hard limit 10 Bilder
+      });
     } catch (e: unknown) {
       console.error(e);
       const msg =
-        e instanceof Error && e.message
-          ? e.message
-          : typeof e === "string"
-          ? e
-          : "Upload fehlgeschlagen.";
+        e instanceof Error && e.message ? e.message : "Upload fehlgeschlagen.";
       setUploadError(msg);
-      // lokale Vorschau als Fallback
-      const preview = URL.createObjectURL(file);
-      setUploadPreview(preview);
     } finally {
       setUploading(false);
     }
+  }
+
+  function removeImage(url: string) {
+    setImageUrls((prev) => prev.filter((u) => u !== url));
+  }
+  function setAsCover(url: string) {
+    setImageUrls((prev) => {
+      const rest = prev.filter((u) => u !== url);
+      return [url, ...rest];
+    });
   }
 
   // ---------- Break-even ----------
@@ -322,7 +335,7 @@ export default function StepSessionDetails({
       fullRevenue !== null ? fullRevenue - locPriceCents : null;
     const suggestedPricePerHead =
       typeof effectiveCapacity === "number" && effectiveCapacity > 0
-        ? Math.ceil((locPriceCents / effectiveCapacity) * 1.2) // +20% Puffer
+        ? Math.ceil((locPriceCents / effectiveCapacity) * 1.2)
         : null;
     return { needed, feasible, profitAtFull, suggestedPricePerHead };
   }, [locPriceCents, price_cents, effectiveCapacity]);
@@ -546,14 +559,13 @@ export default function StepSessionDetails({
         </div>
       </div>
 
-      {/* Fitness Level */}
+      {/* Empfohlenes Fitnesslevel */}
       <div className="space-y-1">
-        <label className="text-sm font-medium">Fitness Level</label>
+        <label className="text-sm font-medium">Empfohlenes Fitnesslevel</label>
         <select
           value={fitnessLevel}
           onChange={(e) => {
             const val = e.target.value as Level | "";
-            // optional: Guard gegen unzulässige Werte
             if (val === "" || LEVELS.includes(val)) setFitnessLevel(val);
           }}
           className="w-full rounded-md border px-3 py-2"
@@ -563,11 +575,14 @@ export default function StepSessionDetails({
           <option value="intermediate">Fortgeschritten</option>
           <option value="advanced">Experte</option>
         </select>
+        <p className="text-xs text-slate-500">
+          Hilft Athlet:innen, die passende Session zu finden.
+        </p>
       </div>
 
-      {/* Bild-Upload (Dropzone) */}
+      {/* Bilder (multi) */}
       <div className="space-y-2">
-        <label className="text-sm font-medium">Bild</label>
+        <label className="text-sm font-medium">Bilder (erstes = Cover)</label>
 
         <label
           ref={dropRef}
@@ -581,8 +596,7 @@ export default function StepSessionDetails({
           onDrop={(e) => {
             e.preventDefault();
             dropRef.current?.classList.remove("ring-2", "ring-black");
-            const f = e.dataTransfer.files?.[0];
-            if (f) handleFile(f);
+            if (e.dataTransfer.files?.length) handleFiles(e.dataTransfer.files);
           }}
           className={clsx(
             "flex cursor-pointer items-center justify-center rounded-md border border-dashed px-4 py-10 text-center",
@@ -591,49 +605,66 @@ export default function StepSessionDetails({
         >
           <div>
             <div className="text-sm font-medium">
-              Datei hierher ziehen oder klicken
+              Dateien hierher ziehen oder klicken
             </div>
             <div className="text-xs text-slate-500 mt-1">
-              JPG/PNG, max. 8 MB
+              JPG/PNG/WEBP/AVIF, max. 8 MB pro Bild, bis zu 10 Bilder
             </div>
           </div>
           <input
             type="file"
             accept="image/*"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) handleFile(f);
-            }}
+            multiple
+            onChange={(e) => e.target.files && handleFiles(e.target.files)}
             className="hidden"
           />
         </label>
 
-        {(uploadPreview || imageUrl) && (
-          <div className="mt-2 flex items-center gap-3">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={uploadPreview || imageUrl || ""}
-              alt="Preview"
-              className="h-40 w-64 rounded-md object-cover ring-1 ring-black/5"
-            />
-            <div className="flex flex-col gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setUploadPreview(null);
-                  setImageUrl("");
-                }}
-                className="rounded-md border px-3 py-2 text-sm hover:bg-slate-50"
+        {uploading && (
+          <span className="text-xs text-slate-500">Lade hoch…</span>
+        )}
+        {uploadError && (
+          <span className="text-xs text-rose-600">{uploadError}</span>
+        )}
+
+        {imageUrls.length > 0 && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-2">
+            {imageUrls.map((u, idx) => (
+              <div
+                key={u}
+                className="relative rounded-md overflow-hidden ring-1 ring-black/5 bg-slate-50"
               >
-                Entfernen
-              </button>
-              {uploading && (
-                <span className="text-xs text-slate-500">Lade hoch…</span>
-              )}
-              {uploadError && (
-                <span className="text-xs text-rose-600">{uploadError}</span>
-              )}
-            </div>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={u}
+                  alt={`Bild ${idx + 1}`}
+                  className="h-32 w-full object-cover"
+                />
+                <div className="absolute inset-x-0 bottom-0 flex gap-1 p-1 bg-black/40">
+                  <button
+                    type="button"
+                    onClick={() => setAsCover(u)}
+                    className={clsx(
+                      "flex-1 rounded-sm px-2 py-1 text-[11px] text-white",
+                      idx === 0
+                        ? "bg-emerald-600"
+                        : "bg-slate-700 hover:bg-slate-600"
+                    )}
+                    title={idx === 0 ? "Ist Cover" : "Als Cover setzen"}
+                  >
+                    {idx === 0 ? "Cover" : "Als Cover"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => removeImage(u)}
+                    className="rounded-sm px-2 py-1 text-[11px] text-white bg-rose-600 hover:bg-rose-700"
+                    title="Entfernen"
+                  >
+                    Entfernen
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -713,7 +744,7 @@ export default function StepSessionDetails({
 
       {!isValid && (
         <div className="rounded-md border border-rose-300 bg-rose-50 px-3 py-2 text-sm text-rose-700">
-          Bitte eingabe überprüfen. Alle mit * markierten Felder sind
+          Bitte Eingabe überprüfen. Alle mit * markierten Felder sind
           erforderlich und müssen korrekt ausgefüllt sein.
         </div>
       )}
