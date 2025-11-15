@@ -5,29 +5,38 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  // --- Allgemeine SEO Tags ---
-  title: "Ihr cooler Titel für die Vorschau",
+  title: "Registrieren | YUVI",
   description:
-    "Dieser Text wird in der Vorschau direkt unter dem Titel angezeigt.",
+    "Erstelle deinen YUVI-Account und buche Sessions oder finde Studios in deiner Nähe.",
+  alternates: { canonical: "/register" },
 
-  // --- Spezifische Open Graph (WhatsApp/Facebook) Tags ---
   openGraph: {
-    title: "🚀 Jetzt entdecken: Ihr individuelles Ergebnis!", // Oft besser für Vorschau
+    title: "YUVI – Jetzt registrieren",
     description:
-      "Hier ist der coole, ansprechende Text, den Sie in der WhatsApp-Vorschau sehen möchten.",
-    url: "https://yuvi-app.vercel.app/register",
-    siteName: "Yuvi",
+      "Werde Teil der YUVI Community: buche Bewegungssessions, entdecke Studios und starte noch heute.",
+    url: "/register",
+    siteName: "YUVI",
     images: [
       {
-        url: "https://npglockemzddzueuhgaf.supabase.co/storage/v1/object/public/session-images/sessions/4ca4fc9f-d2ac-4f33-a694-d44bc23702c3.png", // URL zum Vorschau-Bild
+        url: "/hero-section-runner-dummy.jpg",
         width: 1200,
         height: 630,
-        alt: "Vorschaubild",
+        alt: "YUVI Registrierung – Werde Teil der Community",
       },
     ],
     locale: "de_DE",
     type: "website",
   },
+
+  twitter: {
+    card: "summary_large_image",
+    title: "YUVI – Jetzt registrieren",
+    description:
+      "Account anlegen, Sessions buchen, Studios entdecken – los geht’s.",
+    images: ["/og/yuvi-register.png"],
+  },
+
+  robots: { index: true, follow: true },
 };
 
 type SP = Promise<{ [k: string]: string | string[] | undefined }>;
