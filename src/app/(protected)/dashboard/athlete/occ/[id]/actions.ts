@@ -42,10 +42,16 @@ export async function bookOccurrenceAction(formData: FormData) {
     .select("id")
     .single();
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    // 23505 = unique_violation → "already booked"
+    if ((error as any).code === "23505") {
+      throw new Error("Du hast diese Session bereits gebucht.");
+    }
+    throw new Error(error.message);
+  }
 
-  // UI aktualisieren oder weiterleiten
+  revalidatePath(`/dashboard/athlete/occ/${occurrenceId}`);
   revalidatePath("/(protected)/dashboard");
-  // optional: direkt zur Buchung
-  redirect(`/dashboard/athlete/bookings/${inserted.id}`);
+  // redirect(`/dashboard/athlete/bookings/${inserted.id}`);
+  redirect(`/dashboard/athlete/occ/${occurrenceId}`);
 }

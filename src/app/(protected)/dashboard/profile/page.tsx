@@ -27,8 +27,8 @@ function isRole(v: unknown): v is Role {
 
 export default function ProfilePage() {
   return (
-    <div className="flex min-h-[100svh] items-center justify-center bg-gradient-to-br from-indigo-50 to-rose-50 p-6">
-      <div className="w-full max-w-[1080px]">
+    <div className="flex min-h-[100svh] w-full items-center justify-center bg-gradient-to-br from-indigo-50 to-rose-50 p-6">
+      <div className="flex justify-center items-center w-full max-w-[1080px]">
         <MemberCard />
       </div>
     </div>

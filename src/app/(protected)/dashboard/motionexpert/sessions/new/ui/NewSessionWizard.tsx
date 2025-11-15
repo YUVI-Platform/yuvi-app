@@ -417,3 +417,5 @@ function WizardChecklist({
     </div>
   );
 }
+
+// TODO: Es sollen nur Studios angezeigt werden die in den nächsten 30 Tagen verfügbar sind.

@@ -1,4 +1,3 @@
-// app/onboarding/page.tsx
 import { redirect } from "next/navigation";
 import { supabaseServerAction, supabaseServerRead } from "@/lib/supabaseServer";
 import OnboardingForm from "./ui/OnboardingForm";
@@ -14,9 +13,10 @@ type AthleteDefaults = {
 
 type MotionExpertDefaults = {
   license_id?: string;
-  specialties?: string[]; // aus DB als string[] erwartet
+  specialties?: string[];
   portfolio_url?: string;
   bio?: string;
+  paypal_link?: string;
 };
 
 type StudioHostDefaults = {
@@ -62,15 +62,32 @@ export default async function OnboardingPage() {
   const defaultValues = await getProfileDefaults(uid, role);
 
   return (
-    <main className="mx-auto max-w-xl p-6 min-h-screen">
-      <h1 className="mb-2 text-2xl font-semibold">Onboarding</h1>
-      <p className="mb-6 text-slate-600">
-        Rolle: <b>{roleLabel(role)}</b>
-      </p>
+    <main className="min-h-[100svh] grid grid-rows-[auto_1fr_auto] bg-background">
+      {/* Sticky header (mobile app-like) */}
+      <header className="sticky top-0 z-10 bg-white/80 backdrop-blur border-b">
+        <div className="px-4 py-3 flex items-center justify-between">
+          <h1 className="text-lg font-semibold">Onboarding</h1>
+          <span className="text-xs text-slate-500">
+            Rolle: <b>{roleLabel(role)}</b>
+          </span>
+        </div>
+      </header>
 
-      <OnboardingForm defaultValues={defaultValues.profile} uid={uid}>
-        {renderRoleFields(role, defaultValues.roleSpecific)}
-      </OnboardingForm>
+      {/* Scroll container */}
+      <section className="min-h-0 overflow-y-auto">
+        <div className="mx-auto w-full max-w-md px-4 py-6">
+          <OnboardingForm
+            role={role}
+            defaultValues={defaultValues.profile}
+            uid={uid}
+          >
+            {renderRoleFields(role, defaultValues.roleSpecific)}
+          </OnboardingForm>
+        </div>
+      </section>
+
+      {/* Safe-area padding for iOS home indicator */}
+      <div className="h-[calc(env(safe-area-inset-bottom))]" />
     </main>
   );
 }
@@ -79,22 +96,36 @@ export default async function OnboardingPage() {
 
 function ChooseRoleForm({ uid }: { uid: string }) {
   return (
-    <main className="mx-auto max-w-xl p-6 min-h-screen flex flex-col justify-center">
-      <h1 className="mb-4 text-2xl font-semibold">Wähle deine Rolle</h1>
-      <form action={chooseRoleAction}>
-        <input type="hidden" name="uid" value={uid} />
-        <div className="space-y-3">
-          {["athlete", "motionExpert", "studioHost"].map((role) => (
-            <label key={role} className="flex items-center gap-2">
-              <input type="radio" name="role" value={role} required />{" "}
-              {roleLabel(role as Role)}
-            </label>
-          ))}
+    <main className="min-h-[100svh] grid grid-rows-[auto_1fr]">
+      <header className="sticky top-0 z-10 bg-white/80 backdrop-blur border-b">
+        <div className="px-4 py-3">
+          <h1 className="text-lg font-semibold">Wähle deine Rolle</h1>
         </div>
-        <button className="mt-6 rounded-md bg-black px-4 py-2 text-white">
-          Weiter
-        </button>
-      </form>
+      </header>
+      <section className="min-h-0 overflow-y-auto">
+        <div className="mx-auto w-full max-w-md px-4 py-6">
+          <form
+            action={chooseRoleAction}
+            className="rounded-2xl border bg-white p-5 shadow-sm"
+          >
+            <input type="hidden" name="uid" value={uid} />
+            <div className="space-y-3">
+              {["athlete", "motionExpert", "studioHost"].map((role) => (
+                <label
+                  key={role}
+                  className="flex items-center gap-3 rounded-lg border px-3 py-2"
+                >
+                  <input type="radio" name="role" value={role} required />
+                  <span className="text-sm">{roleLabel(role as Role)}</span>
+                </label>
+              ))}
+            </div>
+            <button className="mt-6 w-full rounded-md bg-black px-4 py-2 text-white">
+              Weiter
+            </button>
+          </form>
+        </div>
+      </section>
     </main>
   );
 }
@@ -154,8 +185,6 @@ function renderRoleFields(role: Role, values: RoleSpecificDefaults) {
       "Calisthenics",
       "Functional Training",
     ];
-    const selected = Array.isArray(v.specialties) ? v.specialties : [];
-
     return (
       <>
         <div className="space-y-1">
@@ -233,7 +262,6 @@ function renderRoleFields(role: Role, values: RoleSpecificDefaults) {
       </>
     );
   }
-
   return null;
 }
 

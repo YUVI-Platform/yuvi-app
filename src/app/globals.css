@@ -173,3 +173,10 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+input:hover {
+  cursor: pointer;
+}
+button:hover {
+  cursor: pointer;
+}

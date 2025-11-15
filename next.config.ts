@@ -35,6 +35,7 @@ const remotePatterns: RemotePattern[] = SUPABASE_HOST
         hostname: SUPABASE_HOST,
         pathname: "/storage/v1/object/public/portfolio/**",
       },
+      { protocol: "https", hostname: "**.supabase.co" },
     ]
   : [];
 

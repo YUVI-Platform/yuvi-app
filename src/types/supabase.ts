@@ -1011,6 +1011,7 @@ export type Database = {
           created_at: string | null
           is_public: boolean | null
           licenses: string[] | null
+          paypal_link: string | null
           portfolio_image_urls: string[] | null
           rating_avg: number | null
           rating_count: number | null
@@ -1023,6 +1024,7 @@ export type Database = {
           created_at?: string | null
           is_public?: boolean | null
           licenses?: string[] | null
+          paypal_link?: string | null
           portfolio_image_urls?: string[] | null
           rating_avg?: number | null
           rating_count?: number | null
@@ -1035,6 +1037,7 @@ export type Database = {
           created_at?: string | null
           is_public?: boolean | null
           licenses?: string[] | null
+          paypal_link?: string | null
           portfolio_image_urls?: string[] | null
           rating_avg?: number | null
           rating_count?: number | null
@@ -1422,6 +1425,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "sessions_expert_profile_fk"
+            columns: ["expert_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
           {
             foreignKeyName: "sessions_self_hosted_fk"
             columns: ["self_hosted_location_id"]
@@ -1898,28 +1908,52 @@ export type Database = {
           }
       enablelongtransactions: { Args: never; Returns: string }
       equals: { Args: { geom1: unknown; geom2: unknown }; Returns: boolean }
-      find_occurrences_in_bbox: {
-        Args: {
-          p_max_lat: number
-          p_max_lng: number
-          p_min_lat: number
-          p_min_lng: number
-        }
-        Returns: {
-          geom: unknown
-          lat: number | null
-          lng: number | null
-          occurrence_id: string | null
-          session_id: string | null
-          title: string | null
-        }[]
-        SetofOptions: {
-          from: "*"
-          to: "v_occurrence_map"
-          isOneToOne: false
-          isSetofReturn: true
-        }
-      }
+      find_occurrences_in_bbox:
+        | {
+            Args: {
+              p_from: string
+              p_max_lat: number
+              p_max_lng: number
+              p_min_lat: number
+              p_min_lng: number
+              p_to: string
+            }
+            Returns: {
+              ends_at: string
+              lat: number
+              lng: number
+              occurrence_id: string
+              price_cents: number
+              seats_left: number
+              session_id: string
+              session_type: Database["public"]["Enums"]["session_type"]
+              starts_at: string
+              tags: string[]
+              title: string
+            }[]
+          }
+        | {
+            Args: {
+              p_max_lat: number
+              p_max_lng: number
+              p_min_lat: number
+              p_min_lng: number
+            }
+            Returns: {
+              geom: unknown
+              lat: number | null
+              lng: number | null
+              occurrence_id: string | null
+              session_id: string | null
+              title: string | null
+            }[]
+            SetofOptions: {
+              from: "*"
+              to: "v_occurrence_map"
+              isOneToOne: false
+              isSetofReturn: true
+            }
+          }
       find_occurrences_near: {
         Args: { p_lat: number; p_lng: number; p_radius_m?: number }
         Returns: {
@@ -2038,6 +2072,14 @@ export type Database = {
       gettransactionid: { Args: never; Returns: unknown }
       is_role: { Args: { role_text: string }; Returns: boolean }
       longtransactionsenabled: { Args: never; Returns: boolean }
+      occ_stats: {
+        Args: { p_hold_minutes?: number; p_occurrence: string }
+        Returns: {
+          booked: number
+          seats_left: number
+          total_cap: number
+        }[]
+      }
       open_checkin_window: {
         Args: {
           p_max_uses?: number

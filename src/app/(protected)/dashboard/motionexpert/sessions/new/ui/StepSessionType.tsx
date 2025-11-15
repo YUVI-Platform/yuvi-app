@@ -34,16 +34,20 @@ export default function StepSessionType({ value, onChange }: Props) {
               "cursor-pointer rounded-lg border px-3 py-2 text-sm",
               value === t
                 ? "border-black ring-1 ring-black"
-                : "hover:bg-slate-50"
+                : "hover:bg-slate-50",
+              t === "trainWithMe" || t === "private"
+                ? "opacity-50 cursor-not-allowed"
+                : ""
             )}
           >
             <input
               type="radio"
               name={name}
               value={t}
+              disabled={t === "trainWithMe" || t === "private" ? true : false}
               checked={value === t}
               onChange={() => onChange(t)}
-              className="mr-2"
+              className="mr-2 disabled:cursor-not-allowed disabled:opacity-50 disabled:text-slate-100"
             />
             {t === "private"
               ? "Private Session"

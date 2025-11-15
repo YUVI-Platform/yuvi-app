@@ -123,7 +123,7 @@ export default function SessionsDashboardClient({
   }, []);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-4xl mx-auto">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">Deine Sessions</h1>
         <Link
@@ -312,8 +312,8 @@ function HeroOccurrenceCard({
         <div className="pt-1">
           <div className="pt-1 flex gap-2">
             <Link
-              href={`/dashboard/motionexpert/sessions`}
-              className="inline-flex items-center rounded-md border px-3 py-2 text-sm hover:bg-slate-50"
+              href={`/dashboard/motionexpert/occ/${occurrence.id}`}
+              className="inline-flex items-center rounded-md border px-3 py-2 text-sm hover:bg-yuvi-skyblue hover:text-white"
             >
               Verwalten
             </Link>
@@ -340,3 +340,5 @@ function InfoTile({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
+
+//TODO: Buttons alle einheitlich gestalten mit hoverstates und Animationen.

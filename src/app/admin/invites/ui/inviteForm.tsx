@@ -4,6 +4,7 @@
 import { useState } from "react";
 import { createInvite } from "../actions";
 import Button from "@/components/ui/button";
+import { CopyIcon } from "lucide-react";
 
 type Role = "athlete" | "motionExpert" | "studioHost";
 type CreateInviteArgs = {
@@ -24,6 +25,7 @@ export default function InviteForm() {
   const [expiresLocal, setExpiresLocal] = useState<string>(""); // datetime-local string
   const [createdUrl, setCreatedUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const baseUrl =
     process.env.NEXT_PUBLIC_APP_URL ||
@@ -56,9 +58,17 @@ export default function InviteForm() {
     }
   }
 
+  function copyToClipboard() {
+    if (createdUrl) {
+      navigator.clipboard.writeText(createdUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  }
+
   return (
     <div className="rounded-2xl border p-4 space-y-4 bg-white">
-      <h2 className="text-lg font-medium">Create Invite</h2>
+      <h2 className="text-lg font-medium">Einladung erstellen</h2>
 
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="space-y-2">
@@ -98,18 +108,27 @@ export default function InviteForm() {
         </div>
       </div>
 
-      <Button disabled={loading} onClick={handleCreate}>
-        {loading ? "Creating…" : "Create invite"}
+      <Button
+        disabled={loading}
+        onClick={handleCreate}
+        className="cursor-pointer hover:bg-emerald-500"
+      >
+        {loading ? "erstellen…" : "Einladung erstellen"}
       </Button>
 
       {createdUrl && (
-        <div className="rounded-lg bg-slate-50 p-3 text-sm flex items-center justify-between">
+        <div className="rounded-lg bg-emerald-500/10 border border-emerald-500 p-3 text-sm flex items-center justify-between ">
           <span className="truncate">{createdUrl}</span>
           <Button
             size="sm"
-            onClick={() => navigator.clipboard.writeText(createdUrl)}
+            onClick={copyToClipboard}
+            className={
+              "flex w-fit justify-between items-center cursor-pointer hover:bg-black/70 transform duration-300 " +
+              (copied ? " bg-emerald-500" : "")
+            }
           >
-            Kopieren
+            {copied ? "Kopiert!" : "Kopieren"}
+            <CopyIcon height={10} />
           </Button>
         </div>
       )}

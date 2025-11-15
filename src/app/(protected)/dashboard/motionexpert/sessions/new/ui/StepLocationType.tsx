@@ -53,7 +53,8 @@ export default function StepLocationType({
                   "cursor-pointer rounded-lg border px-3 py-2 text-sm",
                   locationType === t
                     ? "border-black ring-1 ring-black"
-                    : "hover:bg-slate-50"
+                    : "hover:bg-slate-50",
+                  t === "self_hosted" ? "opacity-50 cursor-not-allowed" : ""
                 )}
               >
                 <input
@@ -63,7 +64,8 @@ export default function StepLocationType({
                   value={t}
                   checked={locationType === t}
                   onChange={() => onChangeLocationType(t)}
-                  className="mr-2"
+                  className="mr-2 disabled:cursor-not-allowed disabled:opacity-50 disabled:text-slate-100"
+                  disabled={t === "self_hosted" ? true : false}
                 />
                 {t === "studio_location" ? "Studio-Location" : "Self-Hosted"}
               </label>

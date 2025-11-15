@@ -4,6 +4,8 @@ import { requireAdmin } from "@/lib/requireAdmin";
 import { listInvites } from "./actions";
 import InviteForm from "./ui/inviteForm";
 import InviteList from "./ui/inviteList";
+import { supabaseServerAction } from "@/lib/supabaseServer";
+import { LogOut } from "lucide-react";
 
 export const dynamic = "force-dynamic"; // immer frische Liste
 
@@ -12,6 +14,7 @@ export default async function AdminInvitesPage() {
   if (!gate.ok) redirect("/login?redirectTo=/admin/invites");
 
   const invites = await listInvites(); // serverseitig (Service Role)
+
   return (
     <div className="mx-auto max-w-4xl p-6 space-y-8 min-h-screen">
       {process.env.NODE_ENV !== "production" &&
@@ -21,6 +24,7 @@ export default async function AdminInvitesPage() {
           </div>
         )}
       <h1 className="text-2xl font-semibold">Admin · Invites</h1>
+
       <InviteForm />
       <InviteList invites={invites} />
     </div>

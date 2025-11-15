@@ -73,8 +73,9 @@ export default async function MotionExpertOverviewPage() {
           icon={<ClipboardList />}
           label="Buchungen"
         />
+
         <Action
-          href="/profile"
+          href="/dashboard/motionexpert/profile"
           icon={<Sparkles />}
           label="Profil vervollständigen"
         />
@@ -97,7 +98,7 @@ export default async function MotionExpertOverviewPage() {
               </p>
               <div className="mt-3">
                 <Link
-                  href="/profile"
+                  href="/dashboard/motionexpert/profile"
                   className="rounded-md bg-black px-3 py-2 text-sm text-white hover:bg-black/90"
                 >
                   Profil bearbeiten
@@ -371,12 +372,6 @@ async function UpcomingSessions({ uid }: { uid: string }) {
                     {dur ? `• ${dur} min` : ""} • Kapazität {o.capacity}
                   </p>
                 </div>
-                <Link
-                  className="text-sm rounded-md border px-3 py-1 hover:bg-slate-50"
-                  href={`/dashboard/motionexpert/sessions/${o.session_id}`}
-                >
-                  Details
-                </Link>
               </li>
             );
           })}
@@ -466,12 +461,6 @@ async function PendingBookings({ uid }: { uid: string }) {
                     {b.status}
                   </p>
                 </div>
-                <Link
-                  className="text-sm rounded-md border px-3 py-1 hover:bg-slate-50"
-                  href={`/dashboard/motionexpert/bookings/${b.id}`}
-                >
-                  Öffnen
-                </Link>
               </li>
             );
           })}
@@ -486,3 +475,6 @@ async function PendingBookings({ uid }: { uid: string }) {
     );
   }
 }
+
+//TODO: Profil vervollständigen muss umbedingt mit dem profil status gekoppelt werden um wirklich zu prüfen ob das profil komplett ist
+//TODO: Es braucht noch rechnungen.

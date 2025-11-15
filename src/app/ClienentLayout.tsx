@@ -9,7 +9,8 @@ export default function ClientLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const isDashboard = pathname.includes("/dashboard");
+  const isDashboard =
+    pathname.includes("/dashboard") || pathname.includes("/admin");
 
   return (
     <>

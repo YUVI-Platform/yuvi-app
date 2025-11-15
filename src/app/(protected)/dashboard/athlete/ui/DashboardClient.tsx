@@ -2,33 +2,28 @@
 
 import SessionCard from "./SessionCard";
 
-type OccurrenceWithDecor = {
+type Occ = {
   id: string;
   starts_at: string;
   ends_at: string;
-  capacity?: number | null;
-  sessions?: {
+  capacity: number | null;
+  booked_count: number | null;
+  sessions: {
     id: string;
     title: string | null;
-    image_urls?: string[] | null;
-    session_type?: string | null;
-    price_cents?: number | null;
-    tags?: string[] | null;
-    location_type?: string | null;
-  } | null;
-  studio_slots?: {
-    id: string;
-    capacity?: number | null;
-    studio_locations?: {
-      id: string;
-      title?: string | null;
-      address?: Record<string, unknown> | null;
-      image_urls?: string[] | null;
-      max_participants?: number | null;
+    image_urls: string[] | null;
+    session_type: string | null;
+    price_cents: number | null;
+    tags: string[] | null;
+    location_type: string | null;
+    expert?: {
+      name: string | null;
+      avatar_url?: string | null;
+      rating_avg?: number | null;
+      rating_count?: number | null;
     } | null;
   } | null;
-
-  // vom Server dekoriert:
+  studio_slots?: any;
   initialBookingId: string | null;
 };
 
@@ -36,38 +31,45 @@ export default function DashboardClient({
   myOccurrences,
   recommended,
 }: {
-  myOccurrences: OccurrenceWithDecor[];
-  recommended: OccurrenceWithDecor[];
+  myOccurrences: Occ[];
+  recommended: Occ[];
 }) {
-  const path = "/dashboard/athlete";
+  const available = recommended;
 
   return (
     <div className="space-y-8">
-      <section>
-        <h2 className="mb-3 text-lg font-semibold">Meine kommenden Sessions</h2>
-        <div className="grid grid-cols-1 gap-4 ">
-          {myOccurrences.map((occ) => (
-            <SessionCard
-              key={occ.id}
-              occurrence={occ}
-              initialBookingId={occ.initialBookingId}
-              path={path}
-              detailsHref={`/dashboard/athlete/occ/${occ.id}`}
-              highlight
-            />
-          ))}
-        </div>
-      </section>
+      {myOccurrences?.length ? (
+        <section className="mt-6 bg-slate-100 p-4 rounded-lg shadow-sm">
+          <h2 className="mb-3 text-xl font-semibold tracking-wider text-yuvi-skyblue font-fancy">
+            {"MEINE BUCHUNGEN"}
+          </h2>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {myOccurrences.map((occ) => (
+              <SessionCard
+                key={occ.id}
+                occurrence={occ}
+                initialBookingId={occ.initialBookingId}
+                path="/dashboard/athlete"
+                detailsHref={`/dashboard/athlete/occ/${occ.id}`}
+              />
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      <hr />
 
       <section>
-        <h2 className="mb-3 text-lg font-semibold">Empfohlen</h2>
-        <div className="grid grid-cols-1 ">
-          {recommended.map((occ) => (
+        <h2 className="mb-3 text-xl font-semibold tracking-wider text-yuvi-skyblue font-fancy">
+          {"VERFÜGBARE SESSIONS"}
+        </h2>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {available.map((occ) => (
             <SessionCard
               key={occ.id}
               occurrence={occ}
               initialBookingId={occ.initialBookingId}
-              path={path}
+              path="/dashboard/athlete"
               detailsHref={`/dashboard/athlete/occ/${occ.id}`}
             />
           ))}

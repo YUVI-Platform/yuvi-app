@@ -2,6 +2,33 @@ import { redirect } from "next/navigation";
 import { validateInvite, finalizeInviteAtomic } from "./actions";
 import { supabaseServerAction } from "@/lib/supabaseServer";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  // --- Allgemeine SEO Tags ---
+  title: "Ihr cooler Titel für die Vorschau",
+  description:
+    "Dieser Text wird in der Vorschau direkt unter dem Titel angezeigt.",
+
+  // --- Spezifische Open Graph (WhatsApp/Facebook) Tags ---
+  openGraph: {
+    title: "🚀 Jetzt entdecken: Ihr individuelles Ergebnis!", // Oft besser für Vorschau
+    description:
+      "Hier ist der coole, ansprechende Text, den Sie in der WhatsApp-Vorschau sehen möchten.",
+    url: "https://yuvi-app.vercel.app/register",
+    siteName: "Yuvi",
+    images: [
+      {
+        url: "https://npglockemzddzueuhgaf.supabase.co/storage/v1/object/public/session-images/sessions/4ca4fc9f-d2ac-4f33-a694-d44bc23702c3.png", // URL zum Vorschau-Bild
+        width: 1200,
+        height: 630,
+        alt: "Vorschaubild",
+      },
+    ],
+    locale: "de_DE",
+    type: "website",
+  },
+};
 
 type SP = Promise<{ [k: string]: string | string[] | undefined }>;
 
@@ -59,7 +86,6 @@ export default async function Register({ searchParams }: { searchParams: SP }) {
 
     if (!userId) throw new Error("Kein Benutzerkonto verfügbar.");
 
-    // <- hier nach dem Guard hart als string behandeln
     await finalizeInviteAtomic({ code, user_id: userId!, email });
 
     const supabase = await supabaseServerAction();
@@ -77,46 +103,84 @@ export default async function Register({ searchParams }: { searchParams: SP }) {
   }
 
   return (
-    <main className="flex w-full h-svh max-h-screen justify-center items-center">
-      <form action={action} className="w-full mx-auto mt-10 max-w-md space-y-4">
-        <h1 className="text-4xl font-semibold font-fancy text-yuvi-rose">
-          CREATE YOUR ACCOUNT
-        </h1>
-
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Email</label>
-          <input
-            name="email"
-            type="email"
-            required
-            className="w-full rounded-md border px-3 py-2"
-            placeholder="you@example.com"
-          />
+    <main className="min-h-[100svh] grid md:grid-cols-2 bg-background">
+      {/* Right: Form (mobile-first Card, zentriert, eigener Scroll) */}
+      <section className="min-h-0 flex flex-col">
+        {/* Mobile-Header */}
+        <div className="md:hidden sticky top-0 z-10 bg-white/80 backdrop-blur border-b">
+          <div className="px-4 py-3">
+            <h2 className="text-lg font-semibold">Create your account</h2>
+          </div>
         </div>
 
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Password</label>
-          <input
-            name="password"
-            type="password"
-            required
-            minLength={8}
-            className="w-full rounded-md border px-3 py-2"
-            placeholder="min. 8 characters"
-          />
+        {/* Scrollbarer Bereich, zentrierter Card-Form */}
+        <div className="min-h-0 flex-1 overflow-y-auto mt-40">
+          <div className="mx-auto w-full max-w-md px-4 md:px-8 py-8 md:py-14">
+            <div className="rounded-2xl border bg-white p-6 shadow-sm md:shadow">
+              {/* Brand (nur Mobile im Card-Header sichtbar) */}
+              <div className="md:hidden mb-4">
+                <h1 className="text-4xl font-semibold font-fancy text-yuvi-rose">
+                  YUVi
+                </h1>
+              </div>
+
+              <h2 className="hidden md:block text-3xl font-semibold font-fancy text-yuvi-rose">
+                CREATE YOUR ACCOUNT
+              </h2>
+
+              <form action={action} className="mt-6 space-y-4">
+                <div className="space-y-2">
+                  <label htmlFor="email" className="text-sm font-medium">
+                    Email
+                  </label>
+                  <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    required
+                    autoComplete="email"
+                    className="w-full rounded-md border px-3 py-2 outline-none focus:ring-2 focus:ring-yuvi-skyblue/60"
+                    placeholder="you@example.com"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="password" className="text-sm font-medium">
+                    Password
+                  </label>
+                  <input
+                    id="password"
+                    name="password"
+                    type="password"
+                    required
+                    minLength={8}
+                    autoComplete="new-password"
+                    className="w-full rounded-md border px-3 py-2 outline-none focus:ring-2 focus:ring-yuvi-skyblue/60"
+                    placeholder="min. 8 characters"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full text-base md:text-lg rounded-md bg-yuvi-skyblue hover:bg-yuvi-skyblue-dark font-fancy px-4 py-2.5 text-white transition"
+                >
+                  {"Create account".toUpperCase()}
+                </button>
+
+                <p className="text-xs md:text-sm text-muted-foreground">
+                  Invite code: <code className="text-slate-700">{code}</code>
+                </p>
+              </form>
+            </div>
+          </div>
         </div>
 
-        <button
-          type="submit"
-          className="w-full rounded-md bg-yuvi-rose px-4 py-2 text-white"
-        >
-          Create account
-        </button>
-
-        <p className="text-sm text-muted-foreground">
-          Invite code: <code>{code}</code>
-        </p>
-      </form>
+        {/* Mobile-Safe-Area Spacer */}
+        <div
+          className="md:hidden"
+          style={{ height: "calc(env(safe-area-inset-bottom))" }}
+        />
+      </section>
     </main>
   );
 }

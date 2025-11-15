@@ -71,6 +71,7 @@ export default function InviteList({ invites }: { invites: Invite[] }) {
                 <Button
                   variant="outline"
                   onClick={() => navigator.clipboard.writeText(url)}
+                  className="cursor-pointer hover:bg-emerald-500 hover:text-white"
                 >
                   Copy link
                 </Button>
@@ -80,6 +81,7 @@ export default function InviteList({ invites }: { invites: Invite[] }) {
                   onClick={() =>
                     start(() => toggleInvite(i.code, !i.is_active))
                   }
+                  className="cursor-pointer"
                 >
                   {i.is_active ? "Deactivate" : "Activate"}
                 </Button>
@@ -90,6 +92,7 @@ export default function InviteList({ invites }: { invites: Invite[] }) {
                     if (confirm("Delete this invite?"))
                       start(() => deleteInvite(i.code));
                   }}
+                  className="cursor-pointer"
                 >
                   Delete
                 </Button>

@@ -1,7 +1,6 @@
 "use client";
 import clsx from "clsx";
 import {
-  ChevronDownIcon,
   HeartHandshakeIcon,
   Menu,
   ShoppingCartIcon,
@@ -16,24 +15,34 @@ import { useState } from "react";
 const DesktopHeader = () => {
   return (
     <header className="md:flex justify-between items-center text-xl font-semibold w-full max-w-[1920px] mt-1 px-20 pt-10 hidden">
-      <div className="text-yuvi-rose text-4xl font-fancy">YUVi</div>
+      <div className="text-yuvi-rose text-6xl font-fancy cursor-pointer hover:scale-110 transition duration-300">
+        YUVi
+      </div>
       <div className="flex gap-2 justify-center items-center">
         <nav className="flex h-fit w-fit bg-yuvi-white p-4 rounded-2xl">
           <ul className="flex space-x-8">
-            <li className="flex gap-1">
-              <StoreIcon /> Marktplatz
+            <li className="flex gap-1 hover:bg-yuvi-light-blue px-2 py-1 rounded-lg hover:text-yuvi-skyblue">
+              <Link href="/marketplace" className="flex gap-2">
+                <StoreIcon /> Marktplatz
+              </Link>
             </li>
-            <li className="flex gap-1">
-              <User2Icon />
-              Membership
+            <li className="flex gap-1 hover:bg-yuvi-light-blue px-2 py-1 rounded-lg hover:text-yuvi-skyblue">
+              <Link href="/membership" className="flex gap-2">
+                <User2Icon />
+                Membership
+              </Link>
             </li>
-            <li className="flex gap-1">
-              <ShoppingCartIcon />
-              Shop
+            <li className="flex gap-1 hover:bg-yuvi-light-blue px-2 py-1 rounded-lg hover:text-yuvi-skyblue">
+              <Link href="/studios" className="flex gap-2">
+                <ShoppingCartIcon />
+                Shop
+              </Link>
             </li>
-            <li className="flex gap-1">
-              <HeartHandshakeIcon />
-              Community
+            <li className="flex gap-1 hover:bg-yuvi-light-blue px-2 py-1 rounded-lg hover:text-yuvi-skyblue">
+              <Link href="/studios" className="flex gap-2">
+                <HeartHandshakeIcon />
+                Community
+              </Link>
             </li>
           </ul>
         </nav>
@@ -62,7 +71,10 @@ const MobileHeader = () => {
   return (
     <header className="flex items-center w-full justify-between px-4 py-4 bg-background md:hidden z-50 relative">
       {/* Logo / Brand */}
-      <Link href="/" className="text-2xl font-bold text-yuvi-rose font-fancy">
+      <Link
+        href="/"
+        className="text-2xl font-bold text-yuvi-rose font-fancy cursor-pointer"
+      >
         YUVi
       </Link>
 
@@ -97,28 +109,28 @@ const MobileHeader = () => {
         <Link
           href="/sessions"
           onClick={() => setIsOpen(false)}
-          className="text-xl font-semibold"
+          className="text-xl font-semibold curosor-pointer"
         >
           Sessions
         </Link>
         <Link
           href="/studios"
           onClick={() => setIsOpen(false)}
-          className="text-xl font-semibold"
+          className="text-xl font-semibold cursor-pointer"
         >
           Studios
         </Link>
         <Link
           href="/about"
           onClick={() => setIsOpen(false)}
-          className="text-xl font-semibold"
+          className="text-xl font-semibold cursor-pointer"
         >
           About
         </Link>
         <Link
           href="/contact"
           onClick={() => setIsOpen(false)}
-          className="text-xl font-semibold"
+          className="text-xl font-semibold cursor-pointer"
         >
           Contact
         </Link>

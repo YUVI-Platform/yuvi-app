@@ -170,6 +170,7 @@ async function saveByRole(formData: FormData, nowIso: string): Promise<void> {
       : getAllStrings(formData, "portfolio_urls");
 
     const bio = String(formData.get("bio") || "").trim();
+    const paypal_link = String(formData.get("paypal_link") || "").trim();
 
     const { error } = await supa.from("motion_expert_profiles").upsert(
       {
@@ -181,6 +182,7 @@ async function saveByRole(formData: FormData, nowIso: string): Promise<void> {
           : null,
         training_focus: training_focus.length ? training_focus : null,
         // rating_* und is_public lässt du via Defaults/Separate Flows setzen
+        paypal_link: paypal_link || null, // ⬅️ NEU
         updated_at: nowIso,
       },
       { onConflict: "user_id" }
@@ -235,3 +237,5 @@ async function getRedirectPath(uid: string): Promise<string> {
   };
   return targetByRole[role] || "/login";
 }
+
+// TODO: Onbaording ist wirklich erst abgeschlossen wenn alles drin ist vorher nicht bzw. alles wichtige eventuell noch zeile einfügen profile_complete: boolean oder so.
